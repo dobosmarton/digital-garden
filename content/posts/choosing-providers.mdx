@@ -1,0 +1,63 @@
+---
+title: "Choosing Providers"
+publishedDate: "2023-07-05"
+lastUpdatedDate: "2023-07-05"
+tags:
+  - starter
+  - docs
+  - development
+description: "How to choose and set up Analytics, newsletter, and other providers for your blog."
+status: published
+series:
+  order: 2
+  title: "Using this template"
+---
+
+Lift($L$) can be determined by Lift Coefficient ($C_L$) like the following
+equation.
+
+$$
+L = \frac{1}{2} \rho v^2 S C_L
+$$
+
+<NewsletterCTA
+  title="I also write deep dives in email"
+  description="I write about coding, design, digital nomad life, and solopreneurship. Join over 1,000 other developers in
+            getting better in business. Unsubscribe whenever."
+  buttonText="Send me the emails"
+  className=""
+/>
+
+### Analytics
+
+#### Vercel
+
+To configure, you need to enable it on [Vercel project dashboard](https://vercel.com/dashboard) by selecting your Project and then click the Analytics tab and click Enable from the dialog.
+
+#### Umami
+
+Umami is a simple, easy to use, web analytics solution with self-hosting option! You can read more about it on [Umami website](https://umami.is/). _(Hint: On [Railway](https://railway.app), you can self-host it low cost or even free)_.
+
+Configure:
+Set `NEXT_PUBLIC_UMAMI_SCRIPT_URL` & `NEXT_PUBLIC_UMAMI_WEBSITE_ID` environment variables on your `.env.local` file and on Vercel dashboard.
+
+#### Other analytics providers
+
+Supporting other analytics providers are in progress. Feel free to open an issue if you have any suggestions or a PR if you want to implement it yourself.
+
+### Newsletter subscription
+
+#### MailerLite
+
+MailerLite is a simple email marketing tool for all types of businesses. You can read more about it on [MailerLite website](https://www.mailerlite.com/).
+
+Configure:
+Set `EMAIL_API_BASE`, `EMAIL_API_KEY`, and `EMAIL_GROUP_ID` environment variables on your `.env.local` file and on Vercel dashboard.
+
+#### Other newsletter providers
+
+Supporting other newsletter providers are in progress. Feel free to open an issue if you have any suggestions or a PR if you want to implement it yourself.
+
+---
+
+This post will be the third part of the series on using this template. In this post, we'll look at how to choose and set up Analytics, newsletter, and other providers for your blog.
