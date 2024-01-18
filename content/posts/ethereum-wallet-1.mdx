@@ -1,0 +1,791 @@
+---
+title: "Creating an Ethereum wallet"
+publishedDate: "2023-04-10"
+lastUpdatedDate: "2024-01-16"
+tags:
+  - typescript
+  - react native
+  - ethereum
+  - web3
+description: "How to build an Ethereum wallet app with React Native"
+status: published
+series:
+  order: 1
+  title: "How to build an Ethereum wallet app with React Native"
+---
+
+In this article, we are going to build a mobile crypto wallet application with React Native. A crypto wallet is a software application that allows you to securely store, send and receive cryptocurrencies like Bitcoin, Ethereum, and others.
+It stores your private keys, which are used to sign and verify transactions on the blockchain network, and enables you to manage your crypto assets.
+In our wallet application, we will be able to store an Ethereum private key.
+
+## Technical overview
+
+The article focuses on wallet creation and wallet recovery mechanisms, let’s dig a little bit deeper into these topics. First, a quick overview of how wallet creation and wallet recovery work in terms of crypto, or more specifically, Ethereum wallets.
+
+### Wallet creation
+
+As we already know, a wallet is basically a tool for storing private keys. So if we want to create a wallet, assuming we don’t have any other crypto wallets yet, as the first step we need a private key to sign later our transactions.
+
+Ethereum private key generation uses a cryptographic algorithm called Elliptic Curve Cryptography (ECC) to generate a unique private key. The private key is a 256-bit long random number that is generated using a secure random number generator.
+Usually, and for our application as well, we use [Mnemonics](https://coinmarketcap.com/alexandria/glossary/mnemonics) as an initial seed of the private key. The generated phrase can help the user to restore the Ethereum account on every Ethereum wallet. [Here](https://ethereum.org/en/developers/docs/consensus-mechanisms/pos/keys/) you can read more about this topic.
+
+Based on all this, let’s see how the user journey of creating a wallet looks like in our application:
+
+- The user **navigates to the wallet creation** screen
+- **Generating random 12 words.** We don’t just pick random 12 words to use as an initial seed for the private key. Randomly selected 12 words are not going to work because the seed phrase must follow a specific format to be compatible with most cryptocurrency wallets.
+  Specifically, the seed phrase must be generated using a word list called [BIP39](https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt), which consists of 2048 words that were specifically selected for their uniqueness and ease of recall. Using a random selection of words that do not follow the BIP39 word list could lead to issues with compatibility and potential security vulnerabilities.
+  Additionally, generating a seed phrase using a true random number generator is important to ensure that the private keys generated from the seed phrase are secure and not predictable.
+- Adding an **extra passphrase**. As the next step, the user must add a unique passphrase. The app will use this extra word as salt during the private key generation. This step makes the generation more secure because this step makes the generated keys unique even if the randomly generated mnemonic phrase is the same.
+- The **key is generated**, and the user can use it to sign transactions on the Ethereum blockchain.
+
+### Wallet recovery
+
+If the user already has a private key on the Ethereum blockchain, it is reasonable need to be able to use that with our wallet application. The user can prove the ownership of a private key with the mnemonic phrase and the unique passphrase.
+
+Actually, the wallet recovery process is quite the same as the wallet generation, except that the mnemonic phrase is not randomly selected by the app, instead, the user has to enter the 12 words.
+Because the key generation algorithm generates always the same output to the same input, with the correct mnemonic and passphrase, the user can restore the account easily and use it via our wallet application.
+
+The user journey of the recovery is very similar to the wallet creation as the processes are quite similar.
+
+- The user **navigates to the wallet recovery** screen
+- The user **selects the 12 words**. It is important to provide the words in the right order because not only the words themselves are important but also the correct order.
+- Adding the **extra passphrase**. It is important to enter the same passphrase as it was entered when the private key was generated.
+- The **key is generated**, and the user can use it to sign transactions on the Ethereum blockchain.
+
+## Technical prerequisites
+
+For React Native mobile applications you need to install several things, especially if you want to use both iOS and Android mobile platforms. [Here](https://reactnative.dev/docs/environment-setup) is the official guide for setting up the development environment, I suggest following those steps.
+
+### Installing dependencies
+
+After installing the React Native prerequisites, let’s create the project
+
+```
+npx react-native init RNCryptoWallet
+```
+
+After the successful installation, our React Native app is [ready to run](https://reactnative.dev/docs/environment-setup?platform=ios#running-your-react-native-application). For our application, we are going to use several third-party libraries. You can read the whole list [here](https://github.com/dobosmarton/rn-crypto-wallet/blob/master/package.json), in the package.json file.
+The exact use case of the individual libraries will be explained when we are building the function that needs it.
+
+_In the following sections, we are going to go through the different parts and features of the application at the technical level.
+Some aspects are less important than others and I want to focus on the key things, so probably there will be code parts that we can not cover in this article. [Here is the Github link](https://github.com/dobosmarton/rn-crypto-wallet) to the project, I encourage you to explore those parts for yourself._
+
+### Infura
+
+Infura helps Web3 developers build world-class applications on blockchain infrastructure. We will use it to connect the mobile application to the Ethereum network.
+[Here](https://docs.infura.io/infura/getting-started) is the official guide to creating an account and a project. In general, storing private and access keys in the git repository is a bad practice, we will use environment variables.
+After installing the `react-native-dotenv` library, we have to update the `babel.config.js` file.
+
+```javascript
+module.exports = {
+  ...
+  plugins: [
+    [
+      'module:react-native-dotenv',
+      {
+        moduleName: '@env',
+        path: '.env',
+        safe: false,
+        allowUndefined: true,
+        verbose: false,
+      },
+    ],
+  ],
+};
+```
+
+From now on we can define our secret values in the `.env` file.
+
+```
+# .env
+ETHEREUM_ENDPOINT=https://goerli.infura.io/v3/...
+```
+
+## Navigation
+
+The app uses the [react-navigation](https://reactnavigation.org/) library, we use a stack navigator for the upper-level navigation and a bottom-tab navigator for the screens which are available only after the user logged in.
+
+In our top-level navigator stack, we use conditional rendering to render only the available screens. The condition itself depends on a valid account coming from the `useAccountState` hook, the content of which we will discuss later.
+
+```typescript
+# src/navigation/index.tsx
+
+...
+export const NavigationRoot: React.FunctionComponent = () => {
+  const {account} = useAccountState();
+  return (
+    <NavigationContainer>
+      <Stack.Navigator
+        initialRouteName="Login"
+        screenOptions={{headerShown: false}}>
+        {!account ? (
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="CreateWallet" component={CreateWalletScreen} />
+            <Stack.Screen
+              name="RestoreWallet"
+              component={RestoreWalletScreen}
+            />
+          </>
+        ) : (
+          <Stack.Screen name="LoggedIn" component={BottomTabNavigator} />
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+};
+```
+
+The bottom tab navigator uses simply two tabs with a custom tab bar definition. The app has a custom tab bar design defined in a custom `BottomTabBar` component.
+The screen headers are also customized, so we can disable the global navigator header in the `Tab.Navigator` component.
+
+```typescript
+# src/navigation/bottomTab.tsx
+
+...
+export const BottomTabNavigator: React.FunctionComponent = () => {
+  const renderBottomTab = (props: BottomTabBarProps) => (
+    <BottomTabBar {...props} />
+  );
+
+  return (
+    <Tab.Navigator
+      tabBar={renderBottomTab}
+      screenOptions={() => ({
+        headerShown: false,
+      })}>
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Account" component={AccountScreen} />
+    </Tab.Navigator>
+  );
+};
+```
+
+### Custom tab bar
+
+This section is a quick side track, we are going to review how we can build custom tab bars with the `react-navigation` and `react-native-reanimated` libraries. The tab bar has a custom design but the functionality should cover the original tab bar functionality.
+
+<figure align="center">
+  <div style={{ display: "flex", justifyContent: "center" }}>
+    <Image alt="Custom navigation bar" src="/content/ethereum-wallet/navigation.avif" width={400} height={200} />
+  </div>
+  <figcaption>Custom navigation bar</figcaption>
+</figure>
+
+```typescript
+# src/components/bottomTabBar.tsx
+
+...
+export const BottomTabBar: React.FunctionComponent<BottomTabBarProps> = ({
+  state,
+  insets,
+  navigation,
+  descriptors,
+}) => {
+  const offset = useSharedValue(0);
+
+  const animatedStyles = useAnimatedStyle(() => ({
+    transform: [{translateX: offset.value}],
+  }));
+
+  const tabItems = state.routes.map((route, index) => {
+    const {options} = descriptors[route.key];
+
+    const isFocused = state.index === index;
+
+    const icon = tabBarIcon(route.name, isFocused);
+
+    const onPress = () => {
+      offset.value = withTiming(index * 94);
+      const event = navigation.emit({
+        type: 'tabPress',
+        target: route.key,
+        canPreventDefault: true,
+      });
+
+      if (!isFocused && !event.defaultPrevented) {
+        // The `merge: true` option makes sure that the params inside the tab screen are preserved
+        navigation.navigate(route.name, {merge: true});
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        key={route.key}
+        style={styles.touchableContainer}
+        accessibilityRole="button"
+        accessibilityState={isFocused ? {selected: true} : {}}
+        accessibilityLabel={options.tabBarAccessibilityLabel}
+        testID={options.tabBarTestID}
+        onPress={onPress}>
+        <View style={[styles.tabItem]}>{icon}</View>
+      </TouchableOpacity>
+    );
+  });
+
+  return (
+    <View style={[styles.container, {paddingBottom: insets.bottom}]}>
+      <View style={styles.tabBarContainer}>
+        <Animated.View style={[styles.activeBackground, animatedStyles]} />
+        {tabItems}
+      </View>
+    </View>
+  );
+};
+```
+
+Here is the main part of the custom tab bar. We use the `react-native-reanimated` package for the animation and the `react-navigation` properties to iterate through the navigation items and bind the correct navigation action to the icons.
+The `tabBarIcon` function returns the correct icon for every navigation item. The tab bar has a fixed width, this can help us to calculate the correct offset for every item in the navigator component, the offset of the green background changes when the user taps on one of the tab bar items.
+The continuous animation values are calculated by the `withTiming` function, which makes the animation smooth between the current offset value and the given parameter value, which is the target value.
+
+## Wallet creation
+
+So, let’s see the first main feature of our app, how can we build a wallet creation process on the Ethereum blockchain? The flow, as we discussed earlier, should be something like
+
+1. Generating mnemonic phrase
+2. Adding custom passphrase
+3. Generating the seed
+4. Generating the private key
+
+To keep our screen components clean, we will introduce a few custom hooks to handle common logic and functionalities. These are reusable pieces, we will use our custom hooks on several screens, and potentially, in the future, we can use these anywhere in the app.
+With the `useRecoveryWords` hook, we can have a random mnemonic phrase, we also can regenerate the words, then generate the seed value based on the words, and finally, we can generate the private key.
+You also can observe, that this seed generation function has a parameter, the password, which the user can enter via the `CreatePasswordSheet` component.
+The other important hook is the `useAccountState`, which connects the private key to an Ethereum account.
+
+Probably can already notice that we use here a few custom components, for example, a custom `SafeArea` component. Sometimes the predefined components are not perfectly fit our application, this is why we use a redefined version of the `SafeAreaView` here.
+
+```typescript
+# src/screens/CreateWallet.tsx
+
+...
+export const CreateWalletScreen: React.FunctionComponent<Props> = ({
+  navigation,
+}) => {
+  const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
+  const {isLoading, withLoading} = useLoading();
+
+  const {loadWallet} = useAccountState();
+  const {randomWords, generateWords, generateSeed} = useRecoveryWords();
+
+  const onContinue = () => {
+    setPasswordModalOpen(true);
+  };
+
+  const onCreateWallet = (password: string) =>
+    withLoading(async () => {
+      try {
+        const seed = await generateSeed(password);
+
+        if (seed !== undefined) {
+          const key = await generatePrivateKey(seed);
+          setPasswordModalOpen(false);
+          loadWallet(key);
+        }
+      } catch (error) {
+        console.log('onCreateWallet#error', (error as Error).message);
+      }
+    });
+
+  return (
+    <SafeArea>
+      <Header
+        title="Create Wallet"
+        type="secondary"
+        onBack={() => navigation.goBack()}
+      />
+
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.container}>
+        <Text style={styles.description}>
+          Write down your 12-word phrase in the correct order without any
+          spelling mistakes! The words need to be in the correct order to
+          restore your funds. Entering the secret phrase incorrectly (wrong
+          order or incorrect spelling) will result in you not being able to
+          access your wallet.
+        </Text>
+
+        <View style={styles.wordContainer}>
+          {randomWords.map((word, index) => (
+            <Chip key={word + index}>{word}</Chip>
+          ))}
+        </View>
+
+        <View style={styles.buttonContainer}>
+          <Button type="secondary" onPress={generateWords}>
+            Regenerate
+          </Button>
+          <Button onPress={onContinue}>Continue</Button>
+        </View>
+      </ScrollView>
+
+      <CreatePasswordSheet
+        isVisible={isPasswordModalOpen}
+        isWalletLoading={isLoading}
+        setVisible={setPasswordModalOpen}
+        onContinue={onCreateWallet}
+      />
+    </SafeArea>
+  );
+};
+```
+
+## Wallet recovery
+
+The recovery flow is quite similar to the wallet creation, except at this time we won’t use random values to generate the private key, but the user has to enter the valid words instead.
+Since not only the words themselves matter but also the order of the words, we have to keep track of the entered value’s index. This is why we have a bit more complex state on this screen. Several custom hooks are used here as well as on the create wallet screen, we will review these hooks in the upcoming sections.
+
+```typescript
+# src/screens/RestoreWallet.tsx
+
+...
+export const RestoreWalletScreen: React.FunctionComponent<Props> = ({
+  navigation,
+}) => {
+  const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
+  const [wordListState, setWordListState] = useState<WordListState>({
+    isOpen: false,
+    activeIndex: null,
+  });
+  const {isLoading, withLoading} = useLoading();
+  const [wordList, setWordList] = useState<string[]>([]);
+  const {loadWallet} = useAccountState();
+  const {generateSeed} = useRecoveryWords();
+
+  const onContinue = () => {
+    setPasswordModalOpen(true);
+  };
+
+  const addWord = async (word: string) =>
+    setWordList(list => {
+      const newList = [...list];
+      if (wordListState.activeIndex !== null) {
+        newList[wordListState.activeIndex] = word;
+      }
+
+      return newList;
+    });
+
+  const onRestoreWallet = (password: string) =>
+    withLoading(async () => {
+      try {
+        const key = await generateSeed(password, wordList);
+
+       if (seed !== undefined) {
+          const keys = await generatePrivateKey(seed);
+          loadWallet(keys);
+          setPasswordModalOpen(false);
+        }
+      } catch (error) {
+        console.log('onRestoreWallet#error', (error as Error).message);
+      }
+    });
+
+  return (
+    <SafeArea>
+      <Header
+        title="Restore Wallet"
+        type="secondary"
+        onBack={() => navigation.goBack()}
+      />
+
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.container}>
+        <Text style={styles.description}>
+          Add your 12-word phrase in the correct order without any spelling
+          mistakes! The words need to be in the correct order to restore your
+          funds.
+        </Text>
+
+        <View style={styles.wordContainer}>
+          {new Array(RECOVERY_WORD_COUNT).fill(0).map((_, index) => {
+            return (
+              <View key={index} style={styles.wordItem}>
+                <Input
+                  value={wordList[index]}
+                  placeholder="Press to add a word!"
+                  editable={false}
+                  selectTextOnFocus={false}
+                  onPressIn={() =>
+                    setWordListState({isOpen: true, activeIndex: index})
+                  }
+                />
+              </View>
+            );
+          })}
+        </View>
+      </ScrollView>
+      <View style={styles.buttonContainer}>
+        <Button
+          disabled={wordList.length < RECOVERY_WORD_COUNT}
+          onPress={onContinue}>
+          Continue
+        </Button>
+      </View>
+
+      <WordListSheet
+        isVisible={wordListState.isOpen}
+        setVisible={() => setWordListState({isOpen: false, activeIndex: null})}
+        onSelect={addWord}
+      />
+
+      <PasswordSheet
+        isVisible={isPasswordModalOpen}
+        isWalletLoading={isLoading}
+        setVisible={setPasswordModalOpen}
+        onContinue={onRestoreWallet}
+      />
+    </SafeArea>
+  );
+};
+```
+
+## Custom hooks
+
+As a next step, let’s take a closer look at the custom hooks that we use across the app. With custom hooks we can control and reuse our functionalities in React components, we also can control rendering flows in hooks, so we can take advantage of the predefined React hooks, like `useEffect` or `useState`.
+
+### useLoading
+
+A simple hook handles the loading state around any async functions. In a lot of scenarios we need to start a loader, do some async operation, or calculate something, then whether the calculation was successful or failed, stop the loading animation. Also important to lift up the potential errors to let the caller component deal with the error handling.
+
+```typescript
+# src/hooks/useLoading.ts
+
+...
+export const useLoading: UseLoading = () => {
+  const [isLoading, setLoading] = useState(false);
+
+  const withLoading = async <T>(fn: () => Promise<T>): Promise<T> => {
+    try {
+      setLoading(true);
+
+      const result = await fn();
+      setLoading(false);
+      return result;
+    } catch (error) {
+      setLoading(false);
+      throw error;
+    }
+  };
+
+  return {
+    isLoading,
+    withLoading,
+  };
+};
+```
+
+### useRecoveryWords
+
+This hook handles the mnemonic phrase. It generates random words right after the first render in the `useEffect` hook but it also provides a function, called `generateWords` to regenerate the mnemonic phrase whenever it is needed.
+The parameter of the `mnemonic.generateWords` function means the entropy for the mnemonic phrase, it should be between 128 and 256 bits and it should be a multiple of 32 bits to be able to convert it to valid words from the BIP39 list.
+The `generateSeed` uses the words and the password to generate the seed and then stores the generated private key in secure storage on the phone. This step is required if we don’t want the user to enter the mnemonic phrase and the password every time the application is opened.
+
+```typescript
+# src/hooks/useRecoveryWords.ts
+
+...
+export const useRecoveryWords: UseRecoveryWords = () => {
+  const [randomWords, setRandomWords] = useState<string[]>([]);
+
+  const generateWords = async () => {
+    const words = await mnemonic.generateWords(128);
+    setRandomWords(words);
+  };
+
+  const generateSeed = async (
+    password: string,
+    words: string[] = randomWords,
+  ): Promise<string | undefined> => {
+    try {
+      const seedHex = await mnemonic.wordsToSeedHex(words.join(' '), password);
+      await secureStore.saveData('private-key', seedHex);
+
+      return seedHex;
+    } catch (error) {
+      console.log('generateSeed#error', (error as Error).message);
+    }
+  };
+
+  useEffect(() => {
+    // generate words after the mount
+    generateWords();
+  }, []);
+
+  return {
+    randomWords,
+    generateWords,
+    generateSeed,
+  };
+};
+```
+
+### useAccountState
+
+The `useAccountState` hook is technically a [context](https://hy.reactjs.org/docs/context.html), we use it for storing the Ethereum account information. Using context is a good choice here because we need to have access to this state variable on several screens in the app and with React this is a great way to define states between screens and components.
+Every component (including screens), placed within the provider wrapper, has access to this value. There are also a few functions here to control the account and balance states. In the app, we want to enforce reentering the mnemonic phrase and the passphrase after the logout, so we delete the data from the secure store once the user logged out.
+
+```typescript
+# src/context/account.provider.tsx
+
+export const AccountState = createContext<AccountContext>();
+
+export const useAccountState = () => useContext(AccountState);
+
+...
+
+export const AccountProvider = ({
+  children,
+}: PropsWithChildren<AccountProviderProps>) => {
+  const [account, setAccount] = useState<Account | null>(null);
+  const {balance, isLoading: isBalanceLoading} = useBalance({account});
+
+  const loadWallet = (privateKey: string) =>
+    setAccount(ethLib.privateKeyToAccount(privateKey));
+
+  const signOut = async () => {
+    setAccount(null);
+    return secureStore.resetData();
+  };
+
+  const state: AccountContext = {
+    account,
+    balance,
+    isBalanceLoading,
+    loadWallet,
+    signOut,
+  };
+
+  return (
+    <AccountState.Provider value={state}>{children}</AccountState.Provider>
+  );
+};
+```
+
+### useBalance
+
+We create this hook to handle the balance information of a given Ethereum account.
+It loads the balance when the input account changes and saves it in a state value.
+The `getBalance` function also uses the loading wrapper to handle the loading state.
+
+```typescript
+# src/hooks/useBalance.ts
+
+...
+export const useBalance: UseBalance = ({account}) => {
+  const [balance, setBalance] = useState<string | null>(null);
+  const {isLoading, withLoading} = useLoading();
+
+  const getBalance = () =>
+    withLoading(async (): Promise<null | string> => {
+      if (!account) {
+        return null;
+      }
+      return ethLib.getBalance(account.address);
+    });
+
+  useEffect(() => {
+    if (!account) {
+      setBalance(null);
+    } else {
+      getBalance().then(setBalance);
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account]);
+
+  return {
+    isLoading,
+    balance,
+  };
+};
+```
+
+## Libraries
+
+In the application folder, there are a few third-party functionalities that are a good idea to define separately to make the development easier and the code cleaner.
+In this section, we will review these functionalities one by one.
+
+### Mnemonic
+
+The mnemonics file contains the functionalities of the mnemonic phrase generation.
+There is a [publicly available implementation](https://github.com/valora-inc/react-native-bip39/blob/master/src/index.ts) of this process, our solution is based on the linked library.
+[Here](https://learnmeabitcoin.com/technical/mnemonic) you can find a simple explanation of how the mnemonic seed generation works on the theoretic level.
+In this app, we use only an English word list, but you can choose lists from other languages from [here](https://github.com/bitcoin/bips/tree/master/bip-0039), the only important thing is to use predefined lists, don't try to write a custom list for yourself.
+
+```typescript
+# src/libs/mnemonics/index.ts
+
+...
+const bytesToBinary = <T extends number>(bytes: T[]): string => {
+  return bytes.reduce<string>(
+    (prev, curr) => prev.concat(lpad(curr.toString(2), '0', 8)),
+    '',
+  );
+};
+
+const lpad = (str: string, padString: string, length: number): string => {
+  while (str.length < length) {
+    str = padString + str;
+  }
+  return str;
+};
+
+const salt = (password: string) =>
+  'mnemonic' + (password.normalize('NFKD') || '');
+
+const checksumBits = async (entropyBuffer: Buffer): Promise<string> => {
+  const bytes = Array.from(entropyBuffer);
+
+  const hash = await sha256Bytes(bytes);
+
+  // Calculated constants from BIP39
+  const ENT = entropyBuffer.length * 8;
+  const CS = ENT / 32;
+
+  const res = bytesToBinary([].slice.call(hash));
+
+  return res.slice(0, CS);
+};
+
+const wordsToSeed = async (
+  mnemonic: string,
+  password: string,
+): Promise<Buffer> => {
+  const mnemonicBuffer = Buffer.from(mnemonic, 'utf8');
+  const saltBuffer = Buffer.from(salt(password), 'utf8');
+  return pbkdf2.deriveAsync(mnemonicBuffer, saltBuffer, 2048, 64, 'sha512');
+};
+
+const entropyToWords = async (
+  entropy: string,
+  wordlist: string[] = wordList,
+): Promise<string[]> => {
+  const entropyBuffer = Buffer.from(entropy, 'hex');
+  const entropyBits = bytesToBinary([].slice.call(entropyBuffer));
+
+  const checksum = await checksumBits(entropyBuffer);
+
+  const bits = entropyBits + checksum;
+  const chunks = bits.match(/(.{1,11})/g);
+
+  return (chunks ?? []).map(binary => wordlist[parseInt(binary, 2)]);
+};
+
+export const wordsToSeedHex = async (
+  mnemonic: string,
+  password: string,
+): Promise<string> => {
+  const seed = await wordsToSeed(mnemonic, password);
+  return seed.toString('hex');
+};
+
+export const generateWords = async (
+  strength: number = 128,
+  wordlist: string[] = wordList,
+): Promise<string[]> => {
+  const bytes = await generateSecureRandom(strength / 8);
+  const hexBuffer = Buffer.from(bytes).toString('hex');
+
+  return entropyToWords(hexBuffer, wordlist);
+};
+```
+
+### Hdkey
+
+For deriving the private key, we use the `bitauth/libauth` library.
+The function generates the key from the provided seed following the [BIP32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki) specification.
+At the end of the function, we save the generated key into the secure storage of the phone.
+This step allows us to authenticate the user without entering the mnemonic words every time when the user wants to use the application.
+
+```typescript
+# src/libs/hdkey/index.ts
+
+export const generatePrivateKey = async (seed: string) => {
+  const res = deriveHdPrivateNodeFromSeed(
+    {
+      sha512: {
+        hash: input => new Uint8Array(sha512.arrayBuffer(input)),
+      },
+    },
+    Buffer.from(seed, 'utf8'),
+  );
+  if (res.valid) {
+    const privateKey = Buffer.from(res.privateKey).toString('hex');
+    await secureStore.saveData('private-key', privateKey);
+    return privateKey;
+  }
+
+  return null;
+};
+```
+
+### Secure storage
+
+Storing a private key is extremely risky, if someone else gets access to the key, they can easily steal the account and use the stored Ethereum as they wish.
+So it is a key aspect to find a solution to store the keys with minimal risk.
+However, storing a key is important from a user experience perspective, since without that, the user has to enter the mnemonic phrase and the custom password every time when they want to use the application. We use the `react-native-keychain` library as secure storage, which stores the values in the keychain on iOS, on Android the lib uses SharedPreferences.
+You can read more about it in the [official documentation](https://github.com/oblador/react-native-keychain).
+
+```typescript
+# src/libs/secureStore/index.ts
+
+...
+export const saveData = async (
+  username: string,
+  password: string,
+): Promise<false | Keychain.Result> =>
+  Keychain.setGenericPassword(username, password, {
+    accessible: Keychain.ACCESSIBLE.WHEN_PASSCODE_SET_THIS_DEVICE_ONLY,
+    service: 'wallet',
+  });
+
+export const loadData = async (): Promise<false | Keychain.UserCredentials> =>
+  Keychain.getGenericPassword({
+    authenticationType:
+      Keychain.AUTHENTICATION_TYPE.DEVICE_PASSCODE_OR_BIOMETRICS,
+    service: 'wallet',
+    authenticationPrompt: {
+      title: 'Authentication',
+      subtitle: 'Authentication is required to unlock the wallet',
+      cancel: 'Cancel',
+    },
+  });
+
+export const resetData = async (): Promise<boolean> =>
+  Keychain.resetGenericPassword({service: 'wallet'});
+```
+
+### Ethereum
+
+The `ethereum` file contains wrappers around the `web3` functionalities. In this case, we can control the third-party Ethereum functions and export only what we need in the application.
+At this point, we need only two functions regarding Ethereum, one to change the private key to an Ethereum account and one to get the balance based on an address.
+
+```typescript
+# src/libs/ethereum/index.ts
+
+const Web3Instance = new Web3(
+  new Web3.providers.HttpProvider(ETHEREUM_ENDPOINT),
+);
+
+export const privateKeyToAccount = (privateKey: string): Account =>
+  Web3Instance.eth.accounts.privateKeyToAccount(privateKey, true);
+
+export const getBalance = async (address: string): Promise<string> => {
+  const balance = await Web3Instance.eth.getBalance(address);
+  return Web3Instance.utils.fromWei(balance, 'ether');
+};
+```
+
+## Components
+
+For a user-friendly application, we need several smaller components to build the layouts.
+Overall it is a good practice to have smaller components and build complex layouts from them, rather than keeping the codebase in only screen files.
+Because the main focus of this article was to introduce the wallet creation and wallet recovery steps of a basic wallet application, the components won’t be listed here in detail, but feel free to go through the [source code](https://github.com/dobosmarton/rn-crypto-wallet/tree/master/src/components) and review the components one by one.
+
+## Final thoughts
+
+Building a crypto wallet can be complex, but fortunately, several tools out there can help the development process. However, since we are playing with real money here, always check the libraries you choose carefully and only use them if you think they are safe.
+My opinion is that React Native is still a great tool for building cross-platform applications, as you can see in this article, we were able to build a very simple crypto wallet in a very short time, so I encourage you to use it and build great products with React Native.
+You also can continue to build the app, adding more features, such as sending Ethereum to other wallets or listing the transaction history on the main page.

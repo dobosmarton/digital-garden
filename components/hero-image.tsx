@@ -19,7 +19,7 @@ export function HeroImage({ title, subtitle }: HeroProps) {
           className="aspect-square h-10 w-10 rounded-full border border-black"
           width={40}
           height={40}
-          src="/avatar.png"
+          src="/profile.jpg"
           alt={defaultAuthor.name}
         />
       </div>
@@ -27,14 +27,14 @@ export function HeroImage({ title, subtitle }: HeroProps) {
         <h1 className="font-heading text-5xl font-bold tracking-tight sm:text-6xl">{title}</h1>
         <h2 className="mt-6 font-heading text-lg text-muted-foreground">{subtitle}</h2>
       </div>
-      <div className="hidden w-4/12 lg:block">
-        <AspectRatio ratio={9 / 14}>
+      <div className="hidden w-4/12 items-center lg:flex">
+        <AspectRatio ratio={9 / 14} className="flex items-center">
           <Image
-            src="/avatar-hero-image.jpg"
+            src="/profile.jpg"
             alt={defaultAuthor.name}
             width={400}
             height={580}
-            className="rounded-lg bg-black object-cover shadow-lg"
+            className="rounded-lg bg-transparent object-cover shadow-lg"
           />
         </AspectRatio>
       </div>

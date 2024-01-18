@@ -32,13 +32,8 @@ export function Sidebar({ className, ...props }: CardProps) {
           </div>
         </CardContent>
         <Separator />
-        <CardFooter>
-          <Button variant="ghost" className="w-full" disabled>
-            Digital Nomad diaries <ArrowRight className="mr-2 h-4 w-4" />
-          </Button>
-        </CardFooter>
       </Card>
-      <Card className={cn(className)} {...props}>
+      {/* <Card className={cn(className)} {...props}>
         <CardHeader>
           <CardTitle>What am I working on?</CardTitle>
         </CardHeader>
@@ -77,7 +72,7 @@ export function Sidebar({ className, ...props }: CardProps) {
             </Link>
           </Button>
         </CardFooter>
-      </Card>
+      </Card> */}
     </>
   );
 }

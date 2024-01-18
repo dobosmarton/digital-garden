@@ -21,6 +21,9 @@ export const tagOptions = [
   "nextjs",
   "gatsby",
   "tailwindcss",
+  "web3",
+  "ethereum",
+  "react native",
 ];
 
 export const Post = defineDocumentType(() => ({

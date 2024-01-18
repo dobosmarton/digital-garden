@@ -3,34 +3,22 @@ import { SocialProfile } from "@/types";
 export const socialProfiles: SocialProfile[] = [
   {
     name: "github",
-    link: "https://github.com/thedevdavid",
+    link: "https://github.com/dobosmarton",
   },
   {
     name: "instagram",
-    link: "https://instagram.com/thedevdavid",
+    link: "https://instagram.com/marton.dobos",
   },
   {
     name: "linkedin",
-    link: "https://linkedin.com/in/thedevdavid",
-  },
-  {
-    name: "mastodon",
-    link: "https://mastodon.social/@thedevdavid",
+    link: "https://linkedin.com/in/marton-dobos",
   },
   {
     name: "threads",
-    link: "https://threads.net/@thedevdavid",
-  },
-  {
-    name: "tiktok",
-    link: "https://tiktok.com/@thedevdavid",
+    link: "https://threads.net/@marton.dobos",
   },
   {
     name: "x",
-    link: "https://twitter.com/thedevdavid",
-  },
-  {
-    name: "youtube",
-    link: "https://youtube.com/@thedevdavid",
+    link: "https://twitter.com/marton_dobos",
   },
 ];

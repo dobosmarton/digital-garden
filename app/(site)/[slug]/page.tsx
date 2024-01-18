@@ -11,8 +11,10 @@ interface PageProps {
   };
 }
 
+const getPublishedPages = () => allPages.filter((page) => page.status === "published");
+
 async function getPageFromParams(params: PageProps["params"]) {
-  const page = allPages.find((page) => page.slug === params.slug);
+  const page = getPublishedPages().find((page) => page.slug === params.slug);
 
   if (!page) {
     null;
@@ -35,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export async function generateStaticParams(): Promise<PageProps["params"][]> {
-  return allPages.map((page) => ({
+  return getPublishedPages().map((page) => ({
     slug: page.slug,
   }));
 }
