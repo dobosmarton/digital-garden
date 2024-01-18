@@ -5,7 +5,6 @@ import siteMetadata, { defaultAuthor } from "@/lib/metadata";
 import { projects } from "@/lib/projects-data";
 import { CopyButton } from "@/components/copy-button";
 import NewsletterSubscribe from "@/components/newsletter-subscribe";
-import { Signature } from "@/components/signature";
 import { SocialButton } from "@/components/social-button";
 import { SpotlightCard } from "@/components/spotlight-card";
 
@@ -36,7 +35,6 @@ export default async function SocialPage() {
               <Mail className="mr-2" /> Email address
             </CopyButton>
           </div>
-          <Signature />
         </div>
       </div>
       {siteMetadata.newsletterUrl && (
