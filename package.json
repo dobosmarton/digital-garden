@@ -1,11 +1,11 @@
 {
   "name": "digital-garden",
-  "version": "0.7.2",
+  "version": "0.1.0",
   "private": true,
-  "repository": "https://github.com/thedevdavid/digital-garden",
+  "repository": "https://github.com/dobosmarton/digital-garden",
   "author": {
-    "name": "David Levai",
-    "url": "https://twitter.com/thedevdavid"
+    "name": "Marton Dobos",
+    "url": "https://twitter.com/marton_dobos"
   },
   "scripts": {
     "dev": "next dev",
