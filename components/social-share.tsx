@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { SocialProfile } from "@/types";
 import { Mail } from "lucide-react";
-import { siFacebook, siLinkedin, siTwitter, siYcombinator } from "simple-icons";
+import { siFacebook, siLinkedin, siX, siYcombinator } from "simple-icons";
 
 import { Button, ButtonProps } from "@/components/ui/button";
 import {
@@ -40,9 +39,9 @@ export const SocialShare = ({ url, text }: SocialShareProps) => {
               fill="currentColor"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <path d={siTwitter.path}></path>
+              <path d={siX.path}></path>
             </svg>
-            Twitter
+            X (formerly Twitter)
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
