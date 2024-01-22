@@ -7,19 +7,14 @@ import { Author } from "./author";
 import { Series } from "./series";
 
 export const tagOptions = [
-  "starter",
   "development",
   "docs",
-  "freelancing",
   "opinion",
-  "jamstack",
-  "frontend",
   "development",
   "javascript",
   "typescript",
   "react",
   "nextjs",
-  "gatsby",
   "tailwindcss",
   "web3",
   "ethereum",

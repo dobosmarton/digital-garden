@@ -1,10 +1,11 @@
 import { makeSource } from "contentlayer/source-files";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeKatex from "rehype-katex";
-import rehypePrettyCode from "rehype-pretty-code";
+import rehypePrettyCode, { Options as PrettyCodeOptions } from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import { Plugin } from "unified";
 
 import { Page } from "./lib/content-definitions/page";
 import { Post } from "./lib/content-definitions/post";
@@ -21,8 +22,8 @@ export default makeSource({
     },
     remarkPlugins: [[remarkGfm], [remarkMath]],
     rehypePlugins: [
-      [rehypeKatex],
-      [rehypeSlug],
+      rehypeKatex,
+      rehypeSlug,
       [
         rehypeAutolinkHeadings,
         {
@@ -33,7 +34,7 @@ export default makeSource({
         },
       ],
       [
-        rehypePrettyCode,
+        rehypePrettyCode as Plugin<any[], any, any>,
         {
           // prepacked themes
           // https://github.com/shikijs/shiki/blob/main/docs/themes.md
@@ -52,9 +53,15 @@ export default makeSource({
 
           // FIXME: maybe properly type this
           onVisitHighlightedLine(node: any) {
-            node.properties.className?.push("line--highlighted");
+            const nodeClass = node.properties.className;
+
+            if (nodeClass && nodeClass.length > 0) {
+              node.properties.className.push("line--highlighted");
+            } else {
+              node.properties.className = ["line--highlighted"];
+            }
           },
-        },
+        } satisfies Partial<PrettyCodeOptions>,
       ],
     ],
   },

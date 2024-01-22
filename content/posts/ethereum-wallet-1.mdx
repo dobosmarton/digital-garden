@@ -76,7 +76,7 @@ Infura helps Web3 developers build world-class applications on blockchain infras
 [Here](https://docs.infura.io/infura/getting-started) is the official guide to creating an account and a project. In general, storing private and access keys in the git repository is a bad practice, we will use environment variables.
 After installing the `react-native-dotenv` library, we have to update the `babel.config.js` file.
 
-```javascript
+```js title="babel.config.js"
 module.exports = {
   ...
   plugins: [
@@ -107,10 +107,7 @@ The app uses the [react-navigation](https://reactnavigation.org/) library, we us
 
 In our top-level navigator stack, we use conditional rendering to render only the available screens. The condition itself depends on a valid account coming from the `useAccountState` hook, the content of which we will discuss later.
 
-```typescript
-# src/navigation/index.tsx
-
-...
+```js showLineNumbers title="src/navigation/index.tsx"
 export const NavigationRoot: React.FunctionComponent = () => {
   const {account} = useAccountState();
   return (
@@ -139,9 +136,7 @@ export const NavigationRoot: React.FunctionComponent = () => {
 The bottom tab navigator uses simply two tabs with a custom tab bar definition. The app has a custom tab bar design defined in a custom `BottomTabBar` component.
 The screen headers are also customized, so we can disable the global navigator header in the `Tab.Navigator` component.
 
-```typescript
-# src/navigation/bottomTab.tsx
-
+```ts showLineNumbers title="src/navigation/bottomTab.tsx"
 ...
 export const BottomTabNavigator: React.FunctionComponent = () => {
   const renderBottomTab = (props: BottomTabBarProps) => (
@@ -172,9 +167,7 @@ This section is a quick side track, we are going to review how we can build cust
   <figcaption>Custom navigation bar</figcaption>
 </figure>
 
-```typescript
-# src/components/bottomTabBar.tsx
-
+```ts showLineNumbers title="src/components/bottomTabBar.tsx"
 ...
 export const BottomTabBar: React.FunctionComponent<BottomTabBarProps> = ({
   state,
@@ -254,9 +247,7 @@ The other important hook is the `useAccountState`, which connects the private ke
 
 Probably can already notice that we use here a few custom components, for example, a custom `SafeArea` component. Sometimes the predefined components are not perfectly fit our application, this is why we use a redefined version of the `SafeAreaView` here.
 
-```typescript
-# src/screens/CreateWallet.tsx
-
+```ts showLineNumbers title="src/screens/CreateWallet.tsx"
 ...
 export const CreateWalletScreen: React.FunctionComponent<Props> = ({
   navigation,
@@ -335,9 +326,7 @@ export const CreateWalletScreen: React.FunctionComponent<Props> = ({
 The recovery flow is quite similar to the wallet creation, except at this time we won’t use random values to generate the private key, but the user has to enter the valid words instead.
 Since not only the words themselves matter but also the order of the words, we have to keep track of the entered value’s index. This is why we have a bit more complex state on this screen. Several custom hooks are used here as well as on the create wallet screen, we will review these hooks in the upcoming sections.
 
-```typescript
-# src/screens/RestoreWallet.tsx
-
+```ts showLineNumbers title="src/screens/RestoreWallet.tsx"
 ...
 export const RestoreWalletScreen: React.FunctionComponent<Props> = ({
   navigation,
@@ -449,10 +438,7 @@ As a next step, let’s take a closer look at the custom hooks that we use acros
 
 A simple hook handles the loading state around any async functions. In a lot of scenarios we need to start a loader, do some async operation, or calculate something, then whether the calculation was successful or failed, stop the loading animation. Also important to lift up the potential errors to let the caller component deal with the error handling.
 
-```typescript
-# src/hooks/useLoading.ts
-
-...
+```ts showLineNumbers title="src/hooks/useLoading.ts"
 export const useLoading: UseLoading = () => {
   const [isLoading, setLoading] = useState(false);
 
@@ -482,10 +468,7 @@ This hook handles the mnemonic phrase. It generates random words right after the
 The parameter of the `mnemonic.generateWords` function means the entropy for the mnemonic phrase, it should be between 128 and 256 bits and it should be a multiple of 32 bits to be able to convert it to valid words from the BIP39 list.
 The `generateSeed` uses the words and the password to generate the seed and then stores the generated private key in secure storage on the phone. This step is required if we don’t want the user to enter the mnemonic phrase and the password every time the application is opened.
 
-```typescript
-# src/hooks/useRecoveryWords.ts
-
-...
+```ts showLineNumbers title="src/hooks/useRecoveryWords.ts"
 export const useRecoveryWords: UseRecoveryWords = () => {
   const [randomWords, setRandomWords] = useState<string[]>([]);
 
@@ -494,17 +477,14 @@ export const useRecoveryWords: UseRecoveryWords = () => {
     setRandomWords(words);
   };
 
-  const generateSeed = async (
-    password: string,
-    words: string[] = randomWords,
-  ): Promise<string | undefined> => {
+  const generateSeed = async (password: string, words: string[] = randomWords): Promise<string | undefined> => {
     try {
-      const seedHex = await mnemonic.wordsToSeedHex(words.join(' '), password);
-      await secureStore.saveData('private-key', seedHex);
+      const seedHex = await mnemonic.wordsToSeedHex(words.join(" "), password);
+      await secureStore.saveData("private-key", seedHex);
 
       return seedHex;
     } catch (error) {
-      console.log('generateSeed#error', (error as Error).message);
+      console.log("generateSeed#error", (error as Error).message);
     }
   };
 
@@ -526,9 +506,7 @@ export const useRecoveryWords: UseRecoveryWords = () => {
 The `useAccountState` hook is technically a [context](https://hy.reactjs.org/docs/context.html), we use it for storing the Ethereum account information. Using context is a good choice here because we need to have access to this state variable on several screens in the app and with React this is a great way to define states between screens and components.
 Every component (including screens), placed within the provider wrapper, has access to this value. There are also a few functions here to control the account and balance states. In the app, we want to enforce reentering the mnemonic phrase and the passphrase after the logout, so we delete the data from the secure store once the user logged out.
 
-```typescript
-# src/context/account.provider.tsx
-
+```ts showLineNumbers title="src/context/account.provider.tsx"
 export const AccountState = createContext<AccountContext>();
 
 export const useAccountState = () => useContext(AccountState);
@@ -569,13 +547,10 @@ We create this hook to handle the balance information of a given Ethereum accoun
 It loads the balance when the input account changes and saves it in a state value.
 The `getBalance` function also uses the loading wrapper to handle the loading state.
 
-```typescript
-# src/hooks/useBalance.ts
-
-...
-export const useBalance: UseBalance = ({account}) => {
+```ts showLineNumbers title="src/hooks/useBalance.ts"
+export const useBalance: UseBalance = ({ account }) => {
   const [balance, setBalance] = useState<string | null>(null);
-  const {isLoading, withLoading} = useLoading();
+  const { isLoading, withLoading } = useLoading();
 
   const getBalance = () =>
     withLoading(async (): Promise<null | string> => {
@@ -614,15 +589,9 @@ There is a [publicly available implementation](https://github.com/valora-inc/rea
 [Here](https://learnmeabitcoin.com/technical/mnemonic) you can find a simple explanation of how the mnemonic seed generation works on the theoretic level.
 In this app, we use only an English word list, but you can choose lists from other languages from [here](https://github.com/bitcoin/bips/tree/master/bip-0039), the only important thing is to use predefined lists, don't try to write a custom list for yourself.
 
-```typescript
-# src/libs/mnemonics/index.ts
-
-...
+```ts showLineNumbers title="src/libs/mnemonics/index.ts"
 const bytesToBinary = <T extends number>(bytes: T[]): string => {
-  return bytes.reduce<string>(
-    (prev, curr) => prev.concat(lpad(curr.toString(2), '0', 8)),
-    '',
-  );
+  return bytes.reduce<string>((prev, curr) => prev.concat(lpad(curr.toString(2), "0", 8)), "");
 };
 
 const lpad = (str: string, padString: string, length: number): string => {
@@ -632,8 +601,7 @@ const lpad = (str: string, padString: string, length: number): string => {
   return str;
 };
 
-const salt = (password: string) =>
-  'mnemonic' + (password.normalize('NFKD') || '');
+const salt = (password: string) => "mnemonic" + (password.normalize("NFKD") || "");
 
 const checksumBits = async (entropyBuffer: Buffer): Promise<string> => {
   const bytes = Array.from(entropyBuffer);
@@ -649,20 +617,14 @@ const checksumBits = async (entropyBuffer: Buffer): Promise<string> => {
   return res.slice(0, CS);
 };
 
-const wordsToSeed = async (
-  mnemonic: string,
-  password: string,
-): Promise<Buffer> => {
-  const mnemonicBuffer = Buffer.from(mnemonic, 'utf8');
-  const saltBuffer = Buffer.from(salt(password), 'utf8');
-  return pbkdf2.deriveAsync(mnemonicBuffer, saltBuffer, 2048, 64, 'sha512');
+const wordsToSeed = async (mnemonic: string, password: string): Promise<Buffer> => {
+  const mnemonicBuffer = Buffer.from(mnemonic, "utf8");
+  const saltBuffer = Buffer.from(salt(password), "utf8");
+  return pbkdf2.deriveAsync(mnemonicBuffer, saltBuffer, 2048, 64, "sha512");
 };
 
-const entropyToWords = async (
-  entropy: string,
-  wordlist: string[] = wordList,
-): Promise<string[]> => {
-  const entropyBuffer = Buffer.from(entropy, 'hex');
+const entropyToWords = async (entropy: string, wordlist: string[] = wordList): Promise<string[]> => {
+  const entropyBuffer = Buffer.from(entropy, "hex");
   const entropyBits = bytesToBinary([].slice.call(entropyBuffer));
 
   const checksum = await checksumBits(entropyBuffer);
@@ -670,23 +632,17 @@ const entropyToWords = async (
   const bits = entropyBits + checksum;
   const chunks = bits.match(/(.{1,11})/g);
 
-  return (chunks ?? []).map(binary => wordlist[parseInt(binary, 2)]);
+  return (chunks ?? []).map((binary) => wordlist[parseInt(binary, 2)]);
 };
 
-export const wordsToSeedHex = async (
-  mnemonic: string,
-  password: string,
-): Promise<string> => {
+export const wordsToSeedHex = async (mnemonic: string, password: string): Promise<string> => {
   const seed = await wordsToSeed(mnemonic, password);
-  return seed.toString('hex');
+  return seed.toString("hex");
 };
 
-export const generateWords = async (
-  strength: number = 128,
-  wordlist: string[] = wordList,
-): Promise<string[]> => {
+export const generateWords = async (strength: number = 128, wordlist: string[] = wordList): Promise<string[]> => {
   const bytes = await generateSecureRandom(strength / 8);
-  const hexBuffer = Buffer.from(bytes).toString('hex');
+  const hexBuffer = Buffer.from(bytes).toString("hex");
 
   return entropyToWords(hexBuffer, wordlist);
 };
@@ -699,21 +655,19 @@ The function generates the key from the provided seed following the [BIP32](http
 At the end of the function, we save the generated key into the secure storage of the phone.
 This step allows us to authenticate the user without entering the mnemonic words every time when the user wants to use the application.
 
-```typescript
-# src/libs/hdkey/index.ts
-
+```ts showLineNumbers title="src/libs/hdkey/index.ts"
 export const generatePrivateKey = async (seed: string) => {
   const res = deriveHdPrivateNodeFromSeed(
     {
       sha512: {
-        hash: input => new Uint8Array(sha512.arrayBuffer(input)),
+        hash: (input) => new Uint8Array(sha512.arrayBuffer(input)),
       },
     },
-    Buffer.from(seed, 'utf8'),
+    Buffer.from(seed, "utf8")
   );
   if (res.valid) {
-    const privateKey = Buffer.from(res.privateKey).toString('hex');
-    await secureStore.saveData('private-key', privateKey);
+    const privateKey = Buffer.from(res.privateKey).toString("hex");
+    await secureStore.saveData("private-key", privateKey);
     return privateKey;
   }
 
@@ -728,33 +682,25 @@ So it is a key aspect to find a solution to store the keys with minimal risk.
 However, storing a key is important from a user experience perspective, since without that, the user has to enter the mnemonic phrase and the custom password every time when they want to use the application. We use the `react-native-keychain` library as secure storage, which stores the values in the keychain on iOS, on Android the lib uses SharedPreferences.
 You can read more about it in the [official documentation](https://github.com/oblador/react-native-keychain).
 
-```typescript
-# src/libs/secureStore/index.ts
-
-...
-export const saveData = async (
-  username: string,
-  password: string,
-): Promise<false | Keychain.Result> =>
+```ts showLineNumbers title="src/libs/secureStore/index.ts"
+export const saveData = async (username: string, password: string): Promise<false | Keychain.Result> =>
   Keychain.setGenericPassword(username, password, {
     accessible: Keychain.ACCESSIBLE.WHEN_PASSCODE_SET_THIS_DEVICE_ONLY,
-    service: 'wallet',
+    service: "wallet",
   });
 
 export const loadData = async (): Promise<false | Keychain.UserCredentials> =>
   Keychain.getGenericPassword({
-    authenticationType:
-      Keychain.AUTHENTICATION_TYPE.DEVICE_PASSCODE_OR_BIOMETRICS,
-    service: 'wallet',
+    authenticationType: Keychain.AUTHENTICATION_TYPE.DEVICE_PASSCODE_OR_BIOMETRICS,
+    service: "wallet",
     authenticationPrompt: {
-      title: 'Authentication',
-      subtitle: 'Authentication is required to unlock the wallet',
-      cancel: 'Cancel',
+      title: "Authentication",
+      subtitle: "Authentication is required to unlock the wallet",
+      cancel: "Cancel",
     },
   });
 
-export const resetData = async (): Promise<boolean> =>
-  Keychain.resetGenericPassword({service: 'wallet'});
+export const resetData = async (): Promise<boolean> => Keychain.resetGenericPassword({ service: "wallet" });
 ```
 
 ### Ethereum
@@ -762,19 +708,15 @@ export const resetData = async (): Promise<boolean> =>
 The `ethereum` file contains wrappers around the `web3` functionalities. In this case, we can control the third-party Ethereum functions and export only what we need in the application.
 At this point, we need only two functions regarding Ethereum, one to change the private key to an Ethereum account and one to get the balance based on an address.
 
-```typescript
-# src/libs/ethereum/index.ts
-
-const Web3Instance = new Web3(
-  new Web3.providers.HttpProvider(ETHEREUM_ENDPOINT),
-);
+```ts showLineNumbers title="src/libs/ethereum/index.ts"
+const Web3Instance = new Web3(new Web3.providers.HttpProvider(ETHEREUM_ENDPOINT));
 
 export const privateKeyToAccount = (privateKey: string): Account =>
   Web3Instance.eth.accounts.privateKeyToAccount(privateKey, true);
 
 export const getBalance = async (address: string): Promise<string> => {
   const balance = await Web3Instance.eth.getBalance(address);
-  return Web3Instance.utils.fromWei(balance, 'ether');
+  return Web3Instance.utils.fromWei(balance, "ether");
 };
 ```
 
