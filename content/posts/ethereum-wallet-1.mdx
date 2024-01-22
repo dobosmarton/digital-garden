@@ -96,8 +96,7 @@ module.exports = {
 
 From now on we can define our secret values in the `.env` file.
 
-```
-# .env
+```title=".env"
 ETHEREUM_ENDPOINT=https://goerli.infura.io/v3/...
 ```
 
@@ -107,22 +106,17 @@ The app uses the [react-navigation](https://reactnavigation.org/) library, we us
 
 In our top-level navigator stack, we use conditional rendering to render only the available screens. The condition itself depends on a valid account coming from the `useAccountState` hook, the content of which we will discuss later.
 
-```js showLineNumbers title="src/navigation/index.tsx"
+```tsx showLineNumbers title="src/navigation/index.tsx"
 export const NavigationRoot: React.FunctionComponent = () => {
-  const {account} = useAccountState();
+  const { account } = useAccountState();
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName="Login"
-        screenOptions={{headerShown: false}}>
+      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
         {!account ? (
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="CreateWallet" component={CreateWalletScreen} />
-            <Stack.Screen
-              name="RestoreWallet"
-              component={RestoreWalletScreen}
-            />
+            <Stack.Screen name="RestoreWallet" component={RestoreWalletScreen} />
           </>
         ) : (
           <Stack.Screen name="LoggedIn" component={BottomTabNavigator} />
@@ -136,7 +130,7 @@ export const NavigationRoot: React.FunctionComponent = () => {
 The bottom tab navigator uses simply two tabs with a custom tab bar definition. The app has a custom tab bar design defined in a custom `BottomTabBar` component.
 The screen headers are also customized, so we can disable the global navigator header in the `Tab.Navigator` component.
 
-```ts showLineNumbers title="src/navigation/bottomTab.tsx"
+```tsx showLineNumbers title="src/navigation/bottomTab.tsx"
 ...
 export const BottomTabNavigator: React.FunctionComponent = () => {
   const renderBottomTab = (props: BottomTabBarProps) => (
@@ -167,8 +161,7 @@ This section is a quick side track, we are going to review how we can build cust
   <figcaption>Custom navigation bar</figcaption>
 </figure>
 
-```ts showLineNumbers title="src/components/bottomTabBar.tsx"
-...
+```tsx showLineNumbers title="src/components/bottomTabBar.tsx"
 export const BottomTabBar: React.FunctionComponent<BottomTabBarProps> = ({
   state,
   insets,
@@ -178,11 +171,11 @@ export const BottomTabBar: React.FunctionComponent<BottomTabBarProps> = ({
   const offset = useSharedValue(0);
 
   const animatedStyles = useAnimatedStyle(() => ({
-    transform: [{translateX: offset.value}],
+    transform: [{ translateX: offset.value }],
   }));
 
   const tabItems = state.routes.map((route, index) => {
-    const {options} = descriptors[route.key];
+    const { options } = descriptors[route.key];
 
     const isFocused = state.index === index;
 
@@ -191,14 +184,14 @@ export const BottomTabBar: React.FunctionComponent<BottomTabBarProps> = ({
     const onPress = () => {
       offset.value = withTiming(index * 94);
       const event = navigation.emit({
-        type: 'tabPress',
+        type: "tabPress",
         target: route.key,
         canPreventDefault: true,
       });
 
       if (!isFocused && !event.defaultPrevented) {
         // The `merge: true` option makes sure that the params inside the tab screen are preserved
-        navigation.navigate(route.name, {merge: true});
+        navigation.navigate(route.name, { merge: true });
       }
     };
 
@@ -207,17 +200,18 @@ export const BottomTabBar: React.FunctionComponent<BottomTabBarProps> = ({
         key={route.key}
         style={styles.touchableContainer}
         accessibilityRole="button"
-        accessibilityState={isFocused ? {selected: true} : {}}
+        accessibilityState={isFocused ? { selected: true } : {}}
         accessibilityLabel={options.tabBarAccessibilityLabel}
         testID={options.tabBarTestID}
-        onPress={onPress}>
+        onPress={onPress}
+      >
         <View style={[styles.tabItem]}>{icon}</View>
       </TouchableOpacity>
     );
   });
 
   return (
-    <View style={[styles.container, {paddingBottom: insets.bottom}]}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <View style={styles.tabBarContainer}>
         <Animated.View style={[styles.activeBackground, animatedStyles]} />
         {tabItems}
@@ -247,16 +241,13 @@ The other important hook is the `useAccountState`, which connects the private ke
 
 Probably can already notice that we use here a few custom components, for example, a custom `SafeArea` component. Sometimes the predefined components are not perfectly fit our application, this is why we use a redefined version of the `SafeAreaView` here.
 
-```ts showLineNumbers title="src/screens/CreateWallet.tsx"
-...
-export const CreateWalletScreen: React.FunctionComponent<Props> = ({
-  navigation,
-}) => {
+```tsx showLineNumbers title="src/screens/CreateWallet.tsx"
+export const CreateWalletScreen: React.FunctionComponent<Props> = ({ navigation }) => {
   const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
-  const {isLoading, withLoading} = useLoading();
+  const { isLoading, withLoading } = useLoading();
 
-  const {loadWallet} = useAccountState();
-  const {randomWords, generateWords, generateSeed} = useRecoveryWords();
+  const { loadWallet } = useAccountState();
+  const { randomWords, generateWords, generateSeed } = useRecoveryWords();
 
   const onContinue = () => {
     setPasswordModalOpen(true);
@@ -273,27 +264,19 @@ export const CreateWalletScreen: React.FunctionComponent<Props> = ({
           loadWallet(key);
         }
       } catch (error) {
-        console.log('onCreateWallet#error', (error as Error).message);
+        console.log("onCreateWallet#error", (error as Error).message);
       }
     });
 
   return (
     <SafeArea>
-      <Header
-        title="Create Wallet"
-        type="secondary"
-        onBack={() => navigation.goBack()}
-      />
+      <Header title="Create Wallet" type="secondary" onBack={() => navigation.goBack()} />
 
-      <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.container}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.container}>
         <Text style={styles.description}>
-          Write down your 12-word phrase in the correct order without any
-          spelling mistakes! The words need to be in the correct order to
-          restore your funds. Entering the secret phrase incorrectly (wrong
-          order or incorrect spelling) will result in you not being able to
-          access your wallet.
+          Write down your 12-word phrase in the correct order without any spelling mistakes! The words need to be in the
+          correct order to restore your funds. Entering the secret phrase incorrectly (wrong order or incorrect
+          spelling) will result in you not being able to access your wallet.
         </Text>
 
         <View style={styles.wordContainer}>
@@ -326,27 +309,24 @@ export const CreateWalletScreen: React.FunctionComponent<Props> = ({
 The recovery flow is quite similar to the wallet creation, except at this time we won’t use random values to generate the private key, but the user has to enter the valid words instead.
 Since not only the words themselves matter but also the order of the words, we have to keep track of the entered value’s index. This is why we have a bit more complex state on this screen. Several custom hooks are used here as well as on the create wallet screen, we will review these hooks in the upcoming sections.
 
-```ts showLineNumbers title="src/screens/RestoreWallet.tsx"
-...
-export const RestoreWalletScreen: React.FunctionComponent<Props> = ({
-  navigation,
-}) => {
+```tsx showLineNumbers title="src/screens/RestoreWallet.tsx"
+export const RestoreWalletScreen: React.FunctionComponent<Props> = ({ navigation }) => {
   const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
   const [wordListState, setWordListState] = useState<WordListState>({
     isOpen: false,
     activeIndex: null,
   });
-  const {isLoading, withLoading} = useLoading();
+  const { isLoading, withLoading } = useLoading();
   const [wordList, setWordList] = useState<string[]>([]);
-  const {loadWallet} = useAccountState();
-  const {generateSeed} = useRecoveryWords();
+  const { loadWallet } = useAccountState();
+  const { generateSeed } = useRecoveryWords();
 
   const onContinue = () => {
     setPasswordModalOpen(true);
   };
 
   const addWord = async (word: string) =>
-    setWordList(list => {
+    setWordList((list) => {
       const newList = [...list];
       if (wordListState.activeIndex !== null) {
         newList[wordListState.activeIndex] = word;
@@ -360,31 +340,24 @@ export const RestoreWalletScreen: React.FunctionComponent<Props> = ({
       try {
         const key = await generateSeed(password, wordList);
 
-       if (seed !== undefined) {
+        if (seed !== undefined) {
           const keys = await generatePrivateKey(seed);
           loadWallet(keys);
           setPasswordModalOpen(false);
         }
       } catch (error) {
-        console.log('onRestoreWallet#error', (error as Error).message);
+        console.log("onRestoreWallet#error", (error as Error).message);
       }
     });
 
   return (
     <SafeArea>
-      <Header
-        title="Restore Wallet"
-        type="secondary"
-        onBack={() => navigation.goBack()}
-      />
+      <Header title="Restore Wallet" type="secondary" onBack={() => navigation.goBack()} />
 
-      <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.container}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.container}>
         <Text style={styles.description}>
-          Add your 12-word phrase in the correct order without any spelling
-          mistakes! The words need to be in the correct order to restore your
-          funds.
+          Add your 12-word phrase in the correct order without any spelling mistakes! The words need to be in the
+          correct order to restore your funds.
         </Text>
 
         <View style={styles.wordContainer}>
@@ -396,9 +369,7 @@ export const RestoreWalletScreen: React.FunctionComponent<Props> = ({
                   placeholder="Press to add a word!"
                   editable={false}
                   selectTextOnFocus={false}
-                  onPressIn={() =>
-                    setWordListState({isOpen: true, activeIndex: index})
-                  }
+                  onPressIn={() => setWordListState({ isOpen: true, activeIndex: index })}
                 />
               </View>
             );
@@ -406,16 +377,14 @@ export const RestoreWalletScreen: React.FunctionComponent<Props> = ({
         </View>
       </ScrollView>
       <View style={styles.buttonContainer}>
-        <Button
-          disabled={wordList.length < RECOVERY_WORD_COUNT}
-          onPress={onContinue}>
+        <Button disabled={wordList.length < RECOVERY_WORD_COUNT} onPress={onContinue}>
           Continue
         </Button>
       </View>
 
       <WordListSheet
         isVisible={wordListState.isOpen}
-        setVisible={() => setWordListState({isOpen: false, activeIndex: null})}
+        setVisible={() => setWordListState({ isOpen: false, activeIndex: null })}
         onSelect={addWord}
       />
 
@@ -506,21 +475,16 @@ export const useRecoveryWords: UseRecoveryWords = () => {
 The `useAccountState` hook is technically a [context](https://hy.reactjs.org/docs/context.html), we use it for storing the Ethereum account information. Using context is a good choice here because we need to have access to this state variable on several screens in the app and with React this is a great way to define states between screens and components.
 Every component (including screens), placed within the provider wrapper, has access to this value. There are also a few functions here to control the account and balance states. In the app, we want to enforce reentering the mnemonic phrase and the passphrase after the logout, so we delete the data from the secure store once the user logged out.
 
-```ts showLineNumbers title="src/context/account.provider.tsx"
+```tsx showLineNumbers title="src/context/account.provider.tsx"
 export const AccountState = createContext<AccountContext>();
 
 export const useAccountState = () => useContext(AccountState);
 
-...
-
-export const AccountProvider = ({
-  children,
-}: PropsWithChildren<AccountProviderProps>) => {
+export const AccountProvider = ({ children }: PropsWithChildren<AccountProviderProps>) => {
   const [account, setAccount] = useState<Account | null>(null);
-  const {balance, isLoading: isBalanceLoading} = useBalance({account});
+  const { balance, isLoading: isBalanceLoading } = useBalance({ account });
 
-  const loadWallet = (privateKey: string) =>
-    setAccount(ethLib.privateKeyToAccount(privateKey));
+  const loadWallet = (privateKey: string) => setAccount(ethLib.privateKeyToAccount(privateKey));
 
   const signOut = async () => {
     setAccount(null);
@@ -535,9 +499,7 @@ export const AccountProvider = ({
     signOut,
   };
 
-  return (
-    <AccountState.Provider value={state}>{children}</AccountState.Provider>
-  );
+  return <AccountState.Provider value={state}>{children}</AccountState.Provider>;
 };
 ```
 
