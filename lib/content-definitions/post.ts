@@ -10,7 +10,6 @@ export const tagOptions = [
   "development",
   "docs",
   "opinion",
-  "development",
   "javascript",
   "typescript",
   "react",
@@ -19,6 +18,8 @@ export const tagOptions = [
   "web3",
   "ethereum",
   "react native",
+  "openai",
+  "ai",
 ];
 
 export const Post = defineDocumentType(() => ({
