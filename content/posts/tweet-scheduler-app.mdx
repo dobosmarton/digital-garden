@@ -466,8 +466,6 @@ export const TwitterLogin = () => {
 Twitter login redirect the user to a callback route that you can configure on the X Developer portal. If you followed the instructions above, the route is the `/callback` path. Let's define the functionality of this route. It parses the redirect URL, then requests an access token for the visitor, and finally, saves the token to http-only cooke. Next.js header lib provides useful and simple functions to [operate with the cookies](https://nextjs.org/docs/app/api-reference/functions/cookies). After having the access token and saving it successfully to a cookie, we redirect the user to the dashboard page.
 
 ```ts showLineNumbers title="app/callback/route.ts"
-// app/callback/route.ts
-
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { NextRequest, NextResponse } from "next/server";
@@ -569,7 +567,7 @@ export const createTweet = async (token: OAuth2UserOptions["token"], text: strin
 
 ```
 
-### Storing schedule informations
+### Storing schedule information
 
 Let's create a new folder and file of our lib folder, called `redis/client.ts` to define our Redis client and Redis functions. If you build a complex, production-ready app, it may be a good idea to create an abstract data layer and hide the exact database provider from the other parts of the application but in our simple case, it is not necessary. We can assume that we never change Redis to another database provider.
 
@@ -725,7 +723,7 @@ export const scheduleSchema = z
     if (value.frequency === "daily") {
       return `${value.time.minute} ${value.time.hour} * * *`;
     }
-    return `${value.time.minute} ${value.time.hour} * * ${value.weekday - 1}`;
+    return `${value.time.minute} ${value.time.hour} * * ${value.weekday + 1}`;
   });
 
 export type ScheduleInput = z.input<typeof scheduleSchema>;
@@ -1296,7 +1294,7 @@ export const generateTweet = async (
 };
 ```
 
-#### Generating tweet in scheduled task
+#### Generating tweets in a scheduled task
 
 Next, let’s extend the scheduled task with the tweet text generation.
 
