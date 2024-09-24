@@ -25,6 +25,7 @@ const defaultTitle = `${defaultAuthor.name}'s Blog`;
 const defaultDescription = `I'm ${defaultAuthor.name}. I build staff on the internet.`;
 
 const siteMetadata: SiteMetaData = {
+  analyticsProvider: "vercel",
   title: {
     template: `%s | ${defaultTitle}`,
     default: defaultTitle,
