@@ -56,7 +56,7 @@ The core components of the application include:
 
 # Scheduler
 
-For task scheduling, the app uses the [trigger.dev](http://trigger.dev) platform to deploy NodeJS functions as tasks and schedule cron jobs to initiate them. The tasks are highly flexible—they can call each other in various ways and perform any operation supported by the NodeJS runtime in a deployed environment.
+For task scheduling, the app uses the trigger.dev platform to deploy NodeJS functions as tasks and schedule cron jobs to initiate them. The tasks are highly flexible, they can call each other in various ways and perform any operation supported by the NodeJS runtime in a deployed environment.
 
 The cron job in this example calls the `researchSync` task in every 6 hours.
 
@@ -81,7 +81,7 @@ export const researchSyncSchedule = schedules.create({
 
 # Fetching the XML formatted article metadata
 
-The app integrates with [https://arxiv.org/](https://arxiv.org/) through its [convenient API](https://info.arxiv.org/help/api/index.html). The metadata fetching happens through a [trigger.de](http://trigger.de)v task, which is called by the `researchSync` task mentioned earlier. This task needs a `startDate` parameter to determine which research papers to fetch. The app fetches papers from the current day several times daily, ensuring continuous updates to the system. I don’t want to dig deep in the arXiv API but I mention two important part which can be considered as general rules of integrating with third party APIs.
+The app integrates with [https://arxiv.org/](https://arxiv.org/) through its [convenient API](https://info.arxiv.org/help/api/index.html). The metadata fetching happens through a trigger.dev task, which is called by the `researchSync` task mentioned earlier. This task needs a `startDate` parameter to determine which research papers to fetch. The app fetches papers from the current day several times daily, ensuring continuous updates to the system. I don't want to dig deep into the arXiv API but I mention two important parts which can be considered as general rules of integrating with third-party APIs.
 
 - **Pagination**: especially if you plan to use large data set, be prepared to fetch the data paginated from the external source. arXiv API uses resumption token to control the data.
 - **Retry**: if your service builds heavily on third party API requests, it worth to build some kind of retry mechanism to give a chance to recover after a failed request. The request can fail due many reason that a retry can solve, e.g network issue, server timeout, rate limit error, etc. Make sure you apply exponential backoff (or some sort of increasing timout) to give some time to the external server to recover.
@@ -131,7 +131,7 @@ While Neon handles structured data, Pinecone is used for storing high-dime
 - **Semantic Search**: By storing embeddings, Pinecone enables the application to perform semantic searches, allowing users to find similar articles based on content rather than just keywords. This enhances the user experience by providing more relevant search results.
 - **Performance**: Pinecone is optimized for fast retrieval of vector data, making it ideal for applications that require real-time or near-real-time search capabilities.
 
-The app saves embeddings for each page of the paper to be able to retrieve more precise suggestions. The unique id strategy is to combine the metadataId and the index of the given page, so we can easily get the pages of a research paper but the app also can retrieve an exact page of a paper as an answer or suggestion.
+The app saves embeddings for each page of the paper to be able to retrieve more precise suggestions. The unique id strategy is to combine the `metadataId` and the index of the given page, so we can easily get the pages of a research paper but the app also can retrieve an exact page of a paper as an answer or suggestion.
 
 ```jsx
 export const createPineconeId = (...ids: (string | number)[]) => `${ids.join('#')}`;
@@ -237,11 +237,11 @@ The steps of processing research papers in the app are designed to run asynchron
 
 ## Trigger.dev task trigger
 
-A major advantage of trigger.dev tasks is that you can trigger them from other tasks or your backend code without waiting for their completion. The trigger.dev platform provides comprehensive monitoring and tracing for all tasks, making it easy to track their progress and results.
+A major advantage of trigger.dev tasks are that you can trigger them from other tasks or your backend code without waiting for their completion. The trigger.dev platform provides comprehensive monitoring and tracing for all tasks, making it easy to track their progress and results.
 
 ### Example: Paginated metadata sync
 
-In the Flatuniverse app, research article metadata is fetched using asynchronous task triggers based on a resumption token. The synchronization process runs as a trigger.dev task that can be initiated by other tasks or any Node.js code. The process works similarly to a recursive method, where the synchronization task triggers itself. However, since each new trigger is asynchronous, the previous task completes immediately after triggering the next one, rather than waiting for it to finish.
+In the Flatuniverse app, research article metadata is fetched using asynchronous task triggers based on a resumption token. The synchronization process runs as a trigger.dev task that can be initiated by other tasks or any Node.js code. The process works similarly to a recursive method, where the synchronization task triggers itself. However, since each new trigger is asynchronous, the previous task is completed immediately after triggering the next one, rather than waiting for it to finish.
 
 ```jsx
 export const syncMetadata = task({
