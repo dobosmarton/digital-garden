@@ -15,7 +15,7 @@ series:
   title: "Building the Flatuniverse app"
 ---
 
-This article continous exploring the Flatuniverse app, more specifically its AI chat feature. The previous article discovered how the app downloads research papers day-to-day from arXiv, and what kind of processing steps are applied to the articles before we save it to the databases. If you missed that part, [here](https://www.martondobos.com/posts/flatuniverse-paper-processing) you can read more about the topic.
+This article continous exploring the [Flatuniverse app](https://flatuniverse.app/), more specifically its AI chat feature. The previous article discovered how the app downloads research papers day-to-day from arXiv, and what kind of processing steps are applied to the articles before we save it to the databases. If you missed that part, [here](https://www.martondobos.com/posts/flatuniverse-paper-processing) you can read more about the topic.
 
 Flatuniverse chat feature allows the users to ask questions about research papers to understand the complex and academic theories faster. In this article, we will dig deeper the applied technologies and solutions.
 
@@ -101,7 +101,7 @@ The temporal analysis component examines the user's query to identify any time-r
  *   - temporalWeight: Importance of time to query (0-1)
  */
 export const _analyzeTemporalQuery = async (query: string): Promise<TemporalQueryAnalysis> => {
-  const temporalAnalysisPrompt = `Analyze the following query for temporal aspects.
+  const temporalAnalysisPrompt = `Analyze the following query for temporal aspects. The current date is ${new Date().toISOString()}.
     Return a JSON object with:
     - isTemporalQuery (boolean): true if the query asks about time-specific information
     - timeFrame (optional): specific time period mentioned, in the format {"start": <date>, "end": <date>}. Be aware that the time period can be a range or a single year and sometimes the time period is not mentioned directly, e.g. "latest".
@@ -273,7 +273,7 @@ const getPromptTemplate = (prompt: string, relevantDocs: ExtendedArticleMetadata
   const _prompt = `Answer the following question based on the provided context.
     If the information in the context is not sufficient or relevant, say so.
     Use specific references and dates from the documents when applicable.
-    Prioritize more recent information when available.
+    Prioritize more recent information when available. The current date is ${new Date().toISOString()}.
 
     Context:
     ${context}
