@@ -1,7 +1,7 @@
 import "./globals.css";
 
 import { Metadata } from "next";
-import { Inter, Space_Grotesk } from "next/font/google";
+import { Inter, Karla } from "next/font/google";
 
 import siteMetadata, { BASE_URL, defaultAuthor } from "@/lib/metadata";
 import { Toaster } from "@/components/ui/toaster";
@@ -9,7 +9,7 @@ import { Analytics } from "@/components/analytics";
 import { BackTopButton } from "@/components/back-to-top";
 import { ThemeProvider } from "@/components/theme-provider";
 
-const spaceGrotesk = Space_Grotesk({
+const spaceGrotesk = Karla({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-space",

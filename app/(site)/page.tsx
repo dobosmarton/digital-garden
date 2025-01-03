@@ -30,8 +30,8 @@ export default async function Home() {
   return (
     <div className="pb-10">
       <HeroImage
-        title="Hi, I am Marton. I build staff on the internet."
-        subtitle="Welcome to my personal blog, where I write about software"
+        title="Hi, I am Marton. I build things on the internet."
+        subtitle="Welcome to my personal blog, where I write about software."
       />
       <div className="container mt-12 max-w-6xl">
         <div className="grid grid-cols-1 place-items-start justify-between gap-12 lg:grid-cols-3">
