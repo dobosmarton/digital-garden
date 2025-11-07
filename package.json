@@ -8,7 +8,7 @@
     "url": "https://twitter.com/marton_dobos"
   },
   "engines": {
-    "node": ">=20.x"
+    "node": "20.x"
   },
   "scripts": {
     "dev": "next dev",
