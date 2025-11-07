@@ -7,6 +7,9 @@
     "name": "Marton Dobos",
     "url": "https://twitter.com/marton_dobos"
   },
+  "engines": {
+    "node": ">=22.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "contentlayer build && next build",

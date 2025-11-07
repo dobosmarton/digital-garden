@@ -1,0 +1,15 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "destination": "https://www.notion.so/Marton-Dobos-2a419cd7d9238095932ec81bcd225236",
+      "permanent": true,
+      "has": [
+        {
+          "type": "host",
+          "value": "cv.martondobos.com"
+        }
+      ]
+    }
+  ]
+}
