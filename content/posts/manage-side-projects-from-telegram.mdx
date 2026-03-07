@@ -1,0 +1,162 @@
+---
+title: "I Manage My Side Projects from Telegram Now"
+publishedDate: "2026-03-07"
+lastUpdatedDate: "2026-03-07"
+tags:
+  - ai
+  - telegram
+  - mastra
+  - agents
+  - automation
+description: "How I built a system to manage multiple side projects from my phone using a Telegram bot, AI agents, and a task board — turning dead time into productive project management."
+status: published
+---
+
+I'm on the subway. I pull out my phone, open Telegram, and type:
+
+> "Create a task about integrating web search as an agent tool"
+
+Within seconds, the bot responds with a structured task — title, acceptance criteria, technical considerations — auto-enriched from my one-line prompt. An agent picks it up and starts exploring the codebase. Ten minutes later, a plan appears in my chat:
+
+> "Agent completed..."
+
+I read it on my phone. The approach is mostly right, but I want it simpler. I reply:
+
+> "Explore other providers, create a decision matrix and conclude to one."
+
+The plan updates. I glance at it again — looks good. I type:
+
+> "Approved, go ahead with implementation."
+
+I put the phone away. By the time I get home, there's a PR waiting for review.
+
+---
+
+## The Problem: Dead Time and Context Fragmentation
+
+I juggle 3-4 side projects in parallel. Each lives in its own repo, has its own backlog, and needs regular attention.
+
+The challenge isn't coding — it's the gaps between coding. The 20-minute commute. The 10-minute wait for coffee. The walk to the grocery store. These fragments add up to 1-2 hours per day of time that's completely dead for engineering work.
+
+And then there's the idea problem. Sometimes I get ideas during commutes, before this system, those ideas went into a notes app. Then I'd forget about them or just needed extra effort to write a proper task based on half formed idea.
+
+I wanted a system where those fragments of time could actually move projects forward — not by replacing my judgment, but by putting the decisions in my hands wherever I happen to be. And I wanted ideas to go straight from my head to the backlog with zero middle steps.
+
+## No Laptop Required
+
+Now the entire system runs on a cheap VPS. The Telegram bot, the task board, the agent runner — all Dockerized, all running 24/7 on the server.
+
+I don't need to keep my laptop open, or I don't need to buy an expensive Mac Mini. I don't need to SSH into anything to kick off work.
+
+This changes the economics of experimentation. If I have an idea for a feature at 11pm, I can create the task and let the agent start exploring the codebase and drafting a plan overnight. The server handles the rest. When I wake up, there's a plan waiting for my review in Telegram — not a finished PR I didn't ask for, but a proposal that needs my approval before any code gets written.
+
+## The Telegram Bot
+
+The core of the mobile experience is a Telegram bot backed by a [Mastra](https://mastra.ai) AI agent with Plane API tools. You send natural language messages, and the agent figures out what you mean and calls the right API.
+
+Here's what actual interactions look like:
+
+**Creating a task:**
+
+> "Add a task about caching the server responses for the API project"
+
+The bot responds with a formatted task including title, description, acceptance criteria, and technical considerations based on the user's intent and the project's context.
+
+**Reviewing a plan:**
+
+> "What's the plan for XY task?"
+
+The bot pulls up the agent's proposed approach — which files it wants to change, what the implementation strategy looks like, any concerns it flagged. I read it on my phone and decide whether it makes sense.
+
+**Refining the plan:**
+
+> "Update the plan — don't refactor the auth module, just add the endpoint directly"
+
+This is where the real value is. I can control the agent's approach from my phone before any code gets written.
+
+**Approving implementation:**
+
+> "Looks good, go ahead"
+
+Only now does the agent start writing code. The human approves every plan before implementation begins.
+
+**Checking what needs my attention:**
+
+> "What tasks are in Plan Review?"
+
+Returns the tasks where agents have finished planning and are waiting for my review. Things I can review and approve from my phone right now.
+
+**Capturing an idea on the go:**
+
+> "Add to the backlog: the mobile app should support offline mode for saved items"
+
+The idea goes straight from my head to the project backlog — enriched with context, acceptance criteria, and technical considerations. No notes app. No "I'll add this later." It's in the system, structured and ready to be implemented.
+
+**Checking agent status:**
+
+> "What's the agent queue status?"
+
+Returns a summary: which agents are running, what they're working on, how much they've spent today, what's queued up next.
+
+## Task Enrichment
+
+The bot doesn't just relay your words to the task board. It enriches them. When I say "add rate limiting," the bot generates:
+
+- A **clear title** under 80 characters
+- A **description** that expands on my intent with context
+- **Acceptance criteria** — concrete, testable conditions for "done"
+- **Technical considerations** — edge cases, dependencies, potential pitfalls
+- An **out of scope** section when relevant
+
+This is driven by explicit guidelines in the system prompt:
+
+```
+## Task Creation Guidelines
+When the user asks you to create a task:
+1. Identify which project it belongs to. If ambiguous, ask which project.
+2. Craft a clear, concise title (imperative mood, under 80 chars).
+3. Write a detailed description_html with sections:
+   - Description: Expand on the user's intent. Add context and clarity.
+   - Acceptance Criteria: Bullet list of concrete, testable conditions.
+   - Technical Considerations: Implementation notes, edge cases, dependencies.
+   - Out of Scope: Anything explicitly not covered, if relevant.
+4. Proactively add details the user might not have mentioned — gaps,
+   edge cases, things to consider. This is your key value: enriching
+   brief requests into well-structured, thorough task descriptions.
+```
+
+This matters because the enrichment feeds directly into the planning phase. A vague "add rate limiting" task leads to a vague plan that I'd have to rewrite anyway. A structured spec with acceptance criteria gives the agent — and me — a clear definition of done from the start.
+
+## The Review Loop from Your Pocket
+
+The real workflow isn't "tell agent, get code." It's a conversation:
+
+**Step 1: Agent plans.** After I create a task, the agent explores the codebase in read-only mode and proposes an approach. It posts the plan as a comment on the task and moves it to "Plan Review." This is the checkpoint — nothing gets implemented until I say so.
+
+**Step 2: I review on my phone.** The plan shows up in Telegram. I read it while waiting for coffee. Does the approach make sense? Is it changing too much? Missing an edge case? I can see all of this in a chat message.
+
+**Step 3: I refine or approve.** If the plan needs adjustment, I reply with feedback — "use the existing middleware instead of writing a new one" or "skip the migration, just add the column." The agent incorporates my feedback. If the plan looks good, I approve and the agent moves to implementation.
+
+**Step 4: Agent implements.** Now the agent writes code, runs tests, and creates a PR. If it hits a question mid-implementation — "should this error return 400 or 422?" — it asks via Telegram. I reply from my phone. The agent resumes.
+
+**Step 5: I review the PR.** The task moves to "In Review." I usually do this on my laptop, but the point is that everything up to this point happened from my phone.
+
+## What This Actually Feels Like
+
+A typical workflow looks like this:
+
+1. Open Telegram — check what's in "Plan Review" across projects
+2. Read a plan for the API project — approve it
+3. Read a plan for the mobile app — reply with "use the existing component, don't create a new one"
+4. An idea hits me — "the game tool should support replay analysis" — I tell the bot, it lands in Backlog
+5. Promote yesterday's backlog idea to Todo — the agent will start planning it
+6. Answer an agent question about error handling
+7. Check queue status — 2 agents running, 1 queued, $8.40 spent today
+
+By the time I sit down at a laptop, there are PRs waiting for review, fresh ideas captured in backlogs, and a kanban board that tells me where everything stands across all my projects.
+
+The phone doesn't replace the laptop. It fills the gaps. And the key insight: the agent never acts without my approval on the plan. It proposes, I decide. But because the proposals come to my phone, I can decide from anywhere — and that changes how many projects I can realistically keep moving.
+
+---
+
+**Next up:** I've shown the front door — how tasks go from your phone through a review cycle. In the next post, I'll cover what happens behind it: how agents explore codebases, plan in read-only mode, implement in isolated git worktrees.
