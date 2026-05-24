@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { allPosts, Post } from "contentlayer/generated";
 
+import { tagUrl } from "@/lib/seo";
 import { sortByDate } from "@/lib/utils";
 import PostPreview from "@/components/post-preview";
 
@@ -21,9 +22,18 @@ async function getSortedArticles(): Promise<Post[]> {
 
 // Dynamic metadata for the page
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const tag = params.slug;
+  const count = allPosts.filter((p) => p.status === "published" && p.tags?.includes(tag)).length;
+  const title = `Posts tagged "${tag}"`;
+  const description = `${count} post${count === 1 ? "" : "s"} about ${tag}.`;
+  const url = tagUrl(tag);
   return {
-    title: `All posts in ${params.slug}`,
-    description: `All posts in ${params.slug}`,
+    title,
+    description,
+    keywords: [tag],
+    alternates: { canonical: url },
+    openGraph: { type: "website", url, title, description },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 

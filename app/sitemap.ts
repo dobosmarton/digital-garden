@@ -18,8 +18,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const pages = allPages
     .filter((page) => page.status === "published")
     .map((page) => ({
-      url: `${BASE_URL}/${page.slug.split("/pages")}`,
-      lastModified: page.lastUpdatedDate,
+      url: `${BASE_URL}/${page.slug}`,
+      lastModified: page.lastUpdatedDate ? new Date(page.lastUpdatedDate) : now,
     }));
   return [
     {

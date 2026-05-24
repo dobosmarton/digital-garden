@@ -3,14 +3,20 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { allPosts } from "contentlayer/generated";
 
-import siteMetadata from "@/lib/metadata";
+import siteMetadata, { BASE_URL } from "@/lib/metadata";
 import { getTagsWithCount } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const title = "Tags";
+  const description = `Browse all topics on ${siteMetadata.title.default}.`;
+  const url = `${BASE_URL}/tags`;
   return {
-    title: "Tags",
-    description: `All tags in ${siteMetadata.title}`,
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { type: "website", url, title, description },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 

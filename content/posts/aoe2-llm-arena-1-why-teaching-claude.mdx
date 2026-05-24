@@ -1,0 +1,126 @@
+---
+title: "How We're Teaching Claude to Play Age Of Empires 2"
+publishedDate: "2026-05-24"
+lastUpdatedDate: "2026-05-24"
+tags:
+  - ai
+  - python
+  - claude
+  - anthropic
+  - llm
+  - agents
+  - computer-vision
+  - aoe2
+description: "The no-API premise, why we split into a vision strategist and a text executor, and how prompt caching makes the economics work. Sets up the rest of the series."
+status: published
+series:
+  order: 1
+  title: "AoE2 LLM Arena"
+---
+
+Foundation models and agent architecture evolved enormously in the past months. The agents are very capable of understanding a wide variety of inputs and they can manage complex workflows with dynamic decision points and tools. I was curios how good is this agentic framework to manage and a control a live strategic game. I think Age of Empires made a lot of us childhood a bit more exciting and colourful. At least my first thought was this game when I started to think which game should I teach the AI to play.
+
+I am planning to write a longer series about this project because it evolved quite a bit, it would be hard summarising it in one article. The first article is about the project introduction and a few early decision point.
+
+---
+
+## What is AoE2
+
+Age of Empires II is a real-time strategy game from 1999. I think I am not lying if I say, this was the most popular part of the Age of Empires series. You start the Dark Age with a Town Center, a handful of villagers, and limited resources. The game progresses through four ages — Dark, Feudal, Castle, Imperial — and you win by outbuilding and outfighting your opponent.
+
+Three core loops run in parallel throughout the game:
+
+1. **Economy**: villagers gather food, wood, gold, stone. Idle villagers are wasted seconds.
+2. **Military**: train units, respond to threats, push objectives.
+3. **Tech progression**: research upgrades, age up, unlock better units and buildings.
+
+A competent player manages all three simultaneously. The AI agent has to learn all of it from pixels.
+
+I chose AoE2 for four specific reasons: it's complex enough to be a real test, deterministic enough to measure progress across runs, it has no anti-cheat that blocks screen capture and a personal, it was my favourite strategy game back then.
+
+---
+
+## The premise: no API, just pixels
+
+My ground rule was to not modify or inject anything to the AoE2 binary to control the game but to build an agent or agent swarm that controls the game from outside, like a real human would. The inputs are the visual representation of the game state, the map, the indicators on the map, the same things you would observe to build up the game state in your head.
+
+A quick note on terminology: AoE2 is a real-time strategy game, not a turn-based one — the game clock never stops. But the agent has to act in discrete steps, so I impose an artificial "turn" on top of the real-time loop: a fixed-cadence tick (roughly every 1 second of wall-clock time) where the pipeline captures the screen, runs perception, and lets the LLM decide on actions. The game keeps running between turns; the agent just samples it. Throughout this series, "turn" always means one of these agent decision cycles, not a pause in the game.
+
+Every turn, the agent receives a structured text representation of the game world — a list of detected entities (`sheep_0 at (450, 320)`, `town_center_0 at (512, 400)`, `villager_2 at (380, 290)`) plus cached resource readings. It uses that to decide what to do: gather food, queue a villager, build a lumber camp, respond to a threat.
+
+Perception comes from a YOLO model trained on 60 entity classes. Execution happens via pyautogui — mouse clicks and keyboard presses sent to the game window. The LLM reasons about text and chooses actions; the execution layer carries them out mechanically.
+
+This creates a control loop where perception, reasoning, and execution are all designed to tolerate noise. The YOLO model misses things. The LLM occasionally makes bad calls. The game doesn't always respond as expected. All of that is part of the engineering problem.
+
+---
+
+## The key design decision: two tiers
+
+The straightforward approach is to feed a screenshot to a vision model every turn and ask "what should I do?" It fails for two reasons.
+
+**Speed**: A vision API call with a full screenshot takes 3–8 seconds round-trip. An RTS game does not pause while you wait. The game clock keeps running, villagers stay idle, attacks go unanswered. Even if cost were zero, vision-every-turn produces an agent that is too slow to play the game in any meaningful sense.
+
+**Cost**: At $3.00 per million input tokens, with a screenshot-heavy context, you're looking at roughly $0.01–0.03 per vision call. Across a 30-minute game at 1 call/second: $18–54 in API costs, per game. I wanted to be cost effective as much as possible.
+
+The solution is to separate vision from execution into two tiers:
+
+**Strategist**: Receives a screenshot. Reads the game UI directly — resources, population, current age. Outputs 3–5 prioritized goals. Runs infrequently: every 3 turns in Dark Age, every 5 in Feudal, every 10 in Castle and Imperial — or immediately when an alarm fires (enemy spotted, under attack).
+
+**Executor**: Receives text only — the YOLO entity list, the strategist's goals, recent memory, game knowledge. Runs every turn. Executes actions via an agentic tool-use loop, up to 7 tool calls per turn.
+
+Both tiers run the same underlying model. The split is about separating expensive vision from cheap text reasoning, and running them at different frequencies.
+
+```
+Screenshot → Strategist → Goals
+                              ↓
+                         Executor ← YOLO detections + memory
+                              ↓
+                           Actions → Game
+```
+
+---
+
+## Why this is financially viable: prompt caching
+
+The executor runs every turn. Its system prompt includes a full AoE2 hotkey reference, strategic rules, a per-turn decision checklist, and cross-game memories from prior runs — roughly 1400 stable tokens before any dynamic context.
+
+Without caching, that block is priced at $3.00/MTok every turn. Anthropic's prompt caching (`cache_control: ephemeral`) prices cached tokens at $0.30/MTok — a 90% reduction on the static portion.
+
+In practice:
+
+- **Block 1** (~800 tokens): `core.md` + `hotkeys.md` + cross-game memories. Stable across the entire game. Cache hit rate after turn 1: essentially 100%.
+- **Block 2** (~600 tokens): age-specific prompt (`dark.md`, `feudal.md`, etc.). Swapped ~3 times per game when the agent ages up.
+
+The dynamic per-turn context — entity list, resources, recent turns — is not cached, because it changes every turn. That part is small.
+
+Result: executor turns cost roughly $0.0006 each after the cache warms. A full game run costs under a dollar in executor tokens. That's a budget you can actually iterate within.
+
+The two-tier architecture only makes financial sense because prompt caching exists. Without it, the executor's per-turn costs would dominate and you'd be back to the same problem. Episode 5 goes into the full caching implementation.
+
+---
+
+## What it actually does
+
+The agent gathers resources, queues villagers, builds lumber camps and houses, responds to alarm conditions, and advances into Feudal Age. It plays a recognizable Dark Age economy.
+
+Cross-game memory injection means the agent that starts game 50 has patterns from previous runs already in its context — things like "don't build farms before the Mill in Dark Age" or "queue villagers more aggressively in the first 10 turns." Those patterns accumulate in a memory file that gets injected at the start of each game.
+
+Military is weak. The agent understands it should train scouts or militia, but unit composition timing is inconsistent. Long games degrade as the working memory window fills and early-game state falls off.
+
+Multiplayer is not attempted. Turn latency is ~30–40 seconds currently (driven by the LLM agentic loop, not the 1-second game loop), which is wrong for real-time PvP.
+
+The goal is not to beat a skilled human player. The goal is a working pattern for LLM agents operating in real visual environments — how to structure the perception-reasoning-execution loop, how to manage costs across many turns, how to accumulate knowledge across runs without fine-tuning. AoE2 is the test environment. The pattern is what matters.
+
+---
+
+## What's coming in the rest of the series
+
+The next posts get into the implementation. We'll walk through the full game loop end-to-end with real timing numbers for each phase — where milliseconds go and which steps actually bottleneck a real-time agent.
+
+A big chunk of the series is computer vision. AoE2 is an isometric game with overlapping sprites, dense unit clusters, and a UI that changes between ages. Getting a YOLO model to reliably detect dozens of entity classes in that environment took more than just throwing data at training — there's taxonomy design, tiling at multiple scales, and tracking detections across frames so the agent sees stable identities instead of flickering boxes. And because hand-labelling tens of thousands of game screenshots is a non-starter, we'll cover how synthetic training data is generated from the game's own sprites, and what it took to make models trained on that data transfer to real gameplay.
+
+On the agent side, the series digs into prompt engineering for real-time play — the two-block caching strategy, how prompts shift as the game progresses through the ages, and the per-turn decision checklist that keeps the executor from drifting. There's a separate post on memory: how the agent carries lessons from one game into the next without fine-tuning, using a feedback loop on its own actions and a cross-game memory chain.
+
+Then there's the unglamorous middle layer: translating "click on this villager" into actual mouse coordinates that hit the right pixel, handling the cases where the game doesn't respond, and composing multi-step actions into single tools the LLM can call. And finally, testing — how to iterate on the agent without sitting through full games, using a synthetic arena that lets you fork a game state, race variants, and mutate prompts to see what actually helps.
+
+Each post covers the real implementation: code, numbers, and what didn't work. Next up is the full game loop, annotated with timing.

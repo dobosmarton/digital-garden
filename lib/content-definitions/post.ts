@@ -46,6 +46,10 @@ export const Post = defineDocumentType(() => ({
       of: { type: "string", options: tagOptions },
       required: false,
     },
+    coverImage: {
+      type: "string",
+      required: false,
+    },
     series: {
       type: "nested",
       of: Series,

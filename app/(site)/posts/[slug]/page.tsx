@@ -7,12 +7,14 @@ import { format, parseISO } from "date-fns";
 import { Home } from "lucide-react";
 
 import { BASE_URL, defaultAuthor } from "@/lib/metadata";
+import { blogPostingJsonLd, breadcrumbJsonLd, postUrl, twitterHandle } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Mdx } from "@/components/mdx";
 import { PostSeriesBox } from "@/components/post-series-box";
+import { RelatedPosts } from "@/components/related-posts";
 import { SocialShare } from "@/components/social-share";
 import { TableOfContents } from "@/components/table-of-contents";
 
@@ -56,17 +58,46 @@ export async function generateMetadata({ params }: PostProps): Promise<Metadata>
     return {};
   }
 
+  const url = postUrl(post.slug);
+  const publishedTime = new Date(post.publishedDate).toISOString();
+  const modifiedTime = post.lastUpdatedDate ? new Date(post.lastUpdatedDate).toISOString() : publishedTime;
+  const authorName = post?.author?.name || defaultAuthor.name;
+  const coverImages = post.coverImage
+    ? [{ url: post.coverImage, width: 1200, height: 630, alt: post.title }]
+    : undefined;
+
   return {
     title: post.title,
     description: post.description,
-    authors: [{ name: post?.author?.name || defaultAuthor.name, url: defaultAuthor.website }],
+    authors: [{ name: authorName, url: defaultAuthor.website }],
     keywords: post.tags,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      url,
+      title: post.title,
+      description: post.description,
+      siteName: `${defaultAuthor.name}'s Blog`,
+      publishedTime,
+      modifiedTime,
+      authors: [defaultAuthor.website],
+      tags: post.tags,
+      ...(coverImages && { images: coverImages }),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.description,
+      creator: twitterHandle,
+      site: twitterHandle,
+      ...(coverImages && { images: coverImages }),
+    },
   };
 }
 
 export async function generateStaticParams(): Promise<PostProps["params"][]> {
   return allPosts.map((post) => ({
-    slug: `/posts/${post._raw.flattenedPath}`,
+    slug: post.slug,
   }));
 }
 
@@ -77,12 +108,22 @@ export default async function PostPage({ params }: PostProps) {
     notFound();
   }
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    name: post?.title,
-    description: post?.description,
-  };
+  const articleJsonLd = blogPostingJsonLd({
+    title: post.title,
+    description: post.description,
+    slug: post.slug,
+    publishedDate: post.publishedDate,
+    lastUpdatedDate: post.lastUpdatedDate,
+    tags: post.tags,
+    coverImage: post.coverImage,
+    author: post.author && { name: post.author.name, url: defaultAuthor.website },
+  });
+
+  const breadcrumbsJsonLd = breadcrumbJsonLd([
+    { name: "Home", url: `${BASE_URL}/` },
+    { name: "Blog", url: `${BASE_URL}/posts` },
+    { name: post.title, url: postUrl(post.slug) },
+  ]);
 
   return (
     <div className="container w-full pb-10 lg:max-w-6xl">
@@ -200,7 +241,9 @@ export default async function PostPage({ params }: PostProps) {
           </Card>
         </aside>
       </div>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <RelatedPosts currentSlug={post.slug} tags={post.tags} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }} />
     </div>
   );
 }
