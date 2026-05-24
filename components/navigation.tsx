@@ -8,7 +8,7 @@ import { Rocket } from "lucide-react";
 import siteMetadata, { defaultAuthor } from "@/lib/metadata";
 import { cn, debounce } from "@/lib/utils";
 import { AnnouncementBar } from "@/components/announcement-bar";
-import { CommandDialogComponent } from "@/components/command-dialog";
+import { CommandDialogComponent, type CommandPost } from "@/components/command-dialog";
 import { MobileNav } from "@/components/mobile-nav";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Navbar } from "@/components/navbar";
@@ -16,7 +16,7 @@ import { WorkAvailabilityBadge } from "@/components/work-availability-badge";
 
 const SCROLL_OFFSET = 200;
 
-export function Navigation() {
+export function Navigation({ commandPosts }: { commandPosts: CommandPost[] }) {
   const [prevScrollPos, setPrevScrollPos] = useState(0);
   const [visible, setVisible] = useState(true);
 
@@ -97,7 +97,7 @@ export function Navigation() {
               </nav>
             </div>
             <div className="order-2 flex w-full items-center gap-2 sm:order-3 sm:w-fit">
-              <CommandDialogComponent />
+              <CommandDialogComponent posts={commandPosts} />
               <ModeToggle />
             </div>
           </div>

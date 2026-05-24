@@ -1,5 +1,7 @@
+import { allPosts } from "contentlayer/generated";
+
 import siteMetadata from "@/lib/metadata";
-import { cn } from "@/lib/utils";
+import { cn, sortByDate } from "@/lib/utils";
 import Footer from "@/components/footer";
 import { Navigation } from "@/components/navigation";
 
@@ -8,6 +10,11 @@ interface RootLayoutProps {
 }
 
 export default function RootLayout({ children }: RootLayoutProps) {
+  const commandPosts = allPosts
+    .filter((post) => post.status === "published")
+    .sort(sortByDate)
+    .map((post) => ({ slug: post.slug, title: post.title, tags: post.tags }));
+
   return (
     <>
       <a
@@ -17,7 +24,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       >
         Skip to Content
       </a>
-      <Navigation />
+      <Navigation commandPosts={commandPosts} />
       <div className="order-last mt-[calc(theme(spacing.16)-theme(spacing.3))]"></div>
       <main className={cn("mt-20", siteMetadata.activeAnnouncement && "mt-32 pt-28 md:pt-0")} id="main-content">
         {children}

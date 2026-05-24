@@ -1,5 +1,5 @@
 // Inspired by https://delba.dev/blog/next-blog-build-time-syntax-highlighting
-import { defineDocumentType } from "contentlayer/source-files";
+import { defineDocumentType } from "contentlayer2/source-files";
 import GithubSlugger from "github-slugger";
 
 import { calculateReadingTime } from "../utils";

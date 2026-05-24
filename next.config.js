@@ -1,11 +1,18 @@
 // @ts-check
 
-const { withContentlayer } = require("next-contentlayer");
+const { withContentlayer } = require("next-contentlayer2");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
+  experimental: {
+    serverComponentsExternalPackages: [
+      "contentlayer2",
+      "@contentlayer2/client",
+      "@contentlayer2/core",
+      "@contentlayer2/source-files",
+    ],
+  },
   rewrites: async () => [
     {
       source: "/posts/test",

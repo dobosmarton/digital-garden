@@ -7,8 +7,7 @@ import { File, Laptop, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { siGithub, siX } from "simple-icons";
 
-import siteMetadata, { defaultAuthor } from "@/lib/metadata";
-import { navigationLinks } from "@/lib/navigation-links";
+import { defaultAuthor } from "@/lib/metadata";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +20,11 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 
-export function CommandDialogComponent({ ...props }: DialogProps) {
+export type CommandPost = { slug: string; title: string; tags?: string[] };
+
+type Props = DialogProps & { posts: CommandPost[] };
+
+export function CommandDialogComponent({ posts, ...props }: Props) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const { setTheme } = useTheme();
@@ -71,31 +74,23 @@ export function CommandDialogComponent({ ...props }: DialogProps) {
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
           <CommandGroup heading="Content">
-            {navigationLinks.map((item) =>
-              item.content ? (
-                item.content.map((subItem) => (
-                  <CommandItem
-                    key={subItem.title.trim()}
-                    onSelect={() => {
-                      runCommand(() => navigate(subItem.href as string));
-                    }}
-                  >
-                    <File className="mr-2 h-4 w-4" />
-                    <span>{subItem.title}</span>
-                  </CommandItem>
-                ))
-              ) : (
-                <CommandItem
-                  key={item.title.trim()}
-                  onSelect={() => {
-                    runCommand(() => navigate(item.href as string));
-                  }}
-                >
-                  <File className="mr-2 h-4 w-4" />
-                  <span>{item.title}</span>
-                </CommandItem>
-              )
-            )}
+            {posts.map((post) => (
+              <CommandItem
+                key={post.slug}
+                value={[post.title, ...(post.tags ?? [])].join(" ")}
+                onSelect={() => {
+                  runCommand(() => navigate(`/posts/${post.slug}`));
+                }}
+              >
+                <File className="mr-2 h-4 w-4 shrink-0" />
+                <div className="flex min-w-0 flex-col">
+                  <span className="truncate">{post.title}</span>
+                  {post.tags && post.tags.length > 0 && (
+                    <span className="truncate text-xs text-muted-foreground">{post.tags.join(", ")}</span>
+                  )}
+                </div>
+              </CommandItem>
+            ))}
           </CommandGroup>
           <CommandSeparator />
           <CommandGroup heading="Social">

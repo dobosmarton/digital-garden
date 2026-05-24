@@ -1,6 +1,8 @@
+"use client";
+
 import NextImage, { ImageProps } from "next/image";
 import Link from "next/link";
-import { useMDXComponent } from "next-contentlayer/hooks";
+import { useMDXComponent } from "next-contentlayer2/hooks";
 import type { TweetProps } from "react-tweet";
 import { Tweet } from "react-tweet";
 
