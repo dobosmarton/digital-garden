@@ -10,6 +10,7 @@
   "engines": {
     "node": ">=20"
   },
+  "packageManager": "pnpm@11.1.2",
   "scripts": {
     "dev": "next dev",
     "build": "contentlayer2 build && next build",
@@ -82,15 +83,6 @@
     "typescript": "^5.7.0"
   },
   "pnpm": {
-    "overrides": {
-      "@opentelemetry/api": "1.4.1",
-      "@opentelemetry/core": "^1.15.1",
-      "@opentelemetry/exporter-trace-otlp-grpc": "^0.41.1",
-      "@opentelemetry/resources": "^1.15.1",
-      "@opentelemetry/sdk-trace-base": "^1.15.1",
-      "@opentelemetry/sdk-trace-node": "^1.15.1",
-      "@opentelemetry/semantic-conventions": "^1.15.1"
-    },
     "onlyBuiltDependencies": [
       "contentlayer2",
       "esbuild",
