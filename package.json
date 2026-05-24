@@ -90,6 +90,12 @@
       "@opentelemetry/sdk-trace-base": "^1.15.1",
       "@opentelemetry/sdk-trace-node": "^1.15.1",
       "@opentelemetry/semantic-conventions": "^1.15.1"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "contentlayer2",
+      "esbuild",
+      "protobufjs",
+      "unrs-resolver"
+    ]
   }
 }
