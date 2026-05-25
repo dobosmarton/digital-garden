@@ -1,5 +1,6 @@
 import Script from "next/script";
-import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import siteMetadata from "@/lib/metadata";
 
@@ -45,7 +46,12 @@ export const Analytics = () => {
           </>
         );
       case "vercel":
-        return <VercelAnalytics />;
+        return (
+          <>
+            <VercelAnalytics />
+            <SpeedInsights />
+          </>
+        );
       default:
         return null;
     }
