@@ -8,8 +8,12 @@ export const runtime = "nodejs";
 const BUTTONDOWN_URL = "https://api.buttondown.com/v1/subscribers";
 const MAX_BODY_BYTES = 1024;
 
+const MIN_SUBMIT_MS = 2_000;
+
 const bodySchema = z.object({
   email: z.string().trim().toLowerCase().email(),
+  company: z.string().optional(),
+  elapsedMs: z.number().nonnegative().optional(),
 });
 
 const redisUrl = process.env.UPSTASH_KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
@@ -80,6 +84,14 @@ export async function POST(request: Request) {
 
   if (!parsed.success) {
     return NextResponse.json({ error: "Please enter a valid email." }, { status: 400 });
+  }
+
+  if (parsed.data.company && parsed.data.company.length > 0) {
+    return NextResponse.json({ ok: true }, { status: 200 });
+  }
+
+  if (parsed.data.elapsedMs !== undefined && parsed.data.elapsedMs < MIN_SUBMIT_MS) {
+    return NextResponse.json({ ok: true }, { status: 200 });
   }
 
   const apiKey = process.env.BUTTONDOWN_API_KEY;

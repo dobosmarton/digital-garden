@@ -22,23 +22,37 @@ export type CTAProps = {
 
 const formSchema = z.object({
   email: z.string().email(),
+  company: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
+const HONEYPOT_STYLE: React.CSSProperties = {
+  position: "absolute",
+  left: "-9999px",
+  width: "1px",
+  height: "1px",
+  overflow: "hidden",
+};
+
 function useNewsletterForm() {
   const { toast } = useToast();
+  const mountedAtRef = React.useRef<number>(Date.now());
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { email: "" },
+    defaultValues: { email: "", company: "" },
   });
 
   const onSubmit = async (values: FormValues) => {
     const response = await fetch("/newsletter", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: values.email }),
+      body: JSON.stringify({
+        email: values.email,
+        company: values.company,
+        elapsedMs: Date.now() - mountedAtRef.current,
+      }),
     });
 
     if (!response?.ok) {
@@ -57,6 +71,19 @@ function useNewsletterForm() {
   };
 
   return { form, onSubmit };
+}
+
+function Honeypot({ register }: { register: ReturnType<typeof useForm<FormValues>>["register"] }) {
+  return (
+    <input
+      type="text"
+      tabIndex={-1}
+      autoComplete="off"
+      aria-hidden="true"
+      style={HONEYPOT_STYLE}
+      {...register("company")}
+    />
+  );
 }
 
 const NewsletterSubscribe = ({
@@ -83,6 +110,7 @@ const NewsletterSubscribe = ({
         <div className="mx-auto mt-8 max-w-xl">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full flex-col gap-3 md:flex-row">
+              <Honeypot register={form.register} />
               <FormField
                 control={form.control}
                 name="email"
@@ -154,6 +182,7 @@ export const NewsletterSubscribeInline = ({
       {caption && <p className="mb-2 text-sm text-muted-foreground">{caption}</p>}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full flex-col gap-2 sm:flex-row">
+          <Honeypot register={form.register} />
           <FormField
             control={form.control}
             name="email"
@@ -198,6 +227,7 @@ export const NewsletterSubscribeCompact = ({
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full flex-col gap-2 sm:flex-row">
+          <Honeypot register={form.register} />
           <FormField
             control={form.control}
             name="email"
