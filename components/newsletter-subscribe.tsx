@@ -24,31 +24,21 @@ const formSchema = z.object({
   email: z.string().email(),
 });
 
-const NewsletterSubscribe = ({
-  title,
-  description,
-  buttonText,
-  className,
-  ...props
-}: CTAProps & React.HTMLAttributes<HTMLDivElement>) => {
+type FormValues = z.infer<typeof formSchema>;
+
+function useNewsletterForm() {
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-    },
+    defaultValues: { email: "" },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: FormValues) => {
     const response = await fetch("/newsletter", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: values.email,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: values.email }),
     });
 
     if (!response?.ok) {
@@ -59,11 +49,24 @@ const NewsletterSubscribe = ({
       });
     }
 
+    form.reset();
     return toast({
-      title: "🎉 Nice!",
-      description: "You'll get the emails now.",
+      title: "Almost there!",
+      description: "Check your inbox to confirm your subscription.",
     });
   };
+
+  return { form, onSubmit };
+}
+
+const NewsletterSubscribe = ({
+  title,
+  description,
+  buttonText,
+  className,
+  ...props
+}: CTAProps & React.HTMLAttributes<HTMLDivElement>) => {
+  const { form, onSubmit } = useNewsletterForm();
 
   return (
     <section
@@ -92,7 +95,7 @@ const NewsletterSubscribe = ({
                   </FormItem>
                 )}
               />
-              <Button type="submit" variant="secondary">
+              <Button type="submit" variant="secondary" disabled={form.formState.isSubmitting}>
                 <Mail className="mr-2 h-4 w-4" /> {buttonText}
               </Button>
             </form>
@@ -130,6 +133,89 @@ const NewsletterSubscribe = ({
         </defs>
       </svg>
     </section>
+  );
+};
+
+export const NewsletterSubscribeInline = ({
+  caption,
+  buttonText,
+  placeholder = "you@example.com",
+  className,
+  ...props
+}: {
+  caption?: string;
+  buttonText: string;
+  placeholder?: string;
+} & React.HTMLAttributes<HTMLDivElement>) => {
+  const { form, onSubmit } = useNewsletterForm();
+
+  return (
+    <div className={cn("w-full", className)} {...props}>
+      {caption && <p className="mb-2 text-sm text-muted-foreground">{caption}</p>}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full flex-col gap-2 sm:flex-row">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem className="flex-auto">
+                <FormControl>
+                  <Input type="email" placeholder={placeholder} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            <Mail className="mr-2 h-4 w-4" /> {buttonText}
+          </Button>
+        </form>
+      </Form>
+    </div>
+  );
+};
+
+export const NewsletterSubscribeCompact = ({
+  title,
+  description,
+  buttonText,
+  className,
+  ...props
+}: CTAProps & React.HTMLAttributes<HTMLDivElement>) => {
+  const { form, onSubmit } = useNewsletterForm();
+
+  return (
+    <aside
+      className={cn(
+        "not-prose my-10 rounded-xl border bg-muted/40 p-6 ring-1 ring-border/60 backdrop-blur-sm",
+        className
+      )}
+      {...props}
+    >
+      <div className="mb-4">
+        <h3 className="font-heading text-lg font-semibold">{title}</h3>
+        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+      </div>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full flex-col gap-2 sm:flex-row">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem className="flex-auto">
+                <FormControl>
+                  <Input type="email" placeholder="you@example.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            <Mail className="mr-2 h-4 w-4" /> {buttonText}
+          </Button>
+        </form>
+      </Form>
+    </aside>
   );
 };
 

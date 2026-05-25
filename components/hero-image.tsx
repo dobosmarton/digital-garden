@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { HeroTerminal } from "@/components/hero-terminal";
+import { NewsletterSubscribeInline } from "@/components/newsletter-subscribe";
 
 interface HeroProps {
   title: string;
@@ -13,6 +14,11 @@ export function HeroImage({ title, subtitle }: HeroProps) {
       <div className="flex max-w-xl flex-col lg:mr-auto">
         <h1 className="font-heading text-5xl font-bold tracking-tight sm:text-6xl">{title}</h1>
         <h2 className="mt-6 font-heading text-lg text-muted-foreground">{subtitle}</h2>
+        <NewsletterSubscribeInline
+          className="mt-8"
+          caption="Get an email when I publish a new post."
+          buttonText="Subscribe"
+        />
       </div>
       <div className="hidden w-5/12 lg:flex">
         <HeroTerminal />

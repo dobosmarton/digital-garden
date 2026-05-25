@@ -1,0 +1,5 @@
+allowBuilds:
+  contentlayer2: true
+  esbuild: true
+  protobufjs: true
+  unrs-resolver: true

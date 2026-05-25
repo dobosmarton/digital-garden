@@ -47,14 +47,11 @@ export default async function Home() {
           </Link>
         </div>
       </div>
-      {siteMetadata.newsletterUrl && (
-        <NewsletterSubscribe
-          title="I also write deep dives in email"
-          description="I write about coding, design, digital nomad life, and solopreneurship. Join over 1,000 other developers in
-            getting better in business. Unsubscribe whenever."
-          buttonText="Send me the emails"
-        />
-      )}
+      <NewsletterSubscribe
+        title="I also write deep dives in email"
+        description="I write about software engineering — building things on the internet, working with AI, and the messy parts no one explains. New posts straight to your inbox. Unsubscribe whenever."
+        buttonText="Send me the emails"
+      />
       {aboutPage && (
         <div className="container max-w-6xl">
           <h2 className="mb-8 font-heading text-4xl font-bold">Who&apos;s this guy again?</h2>
