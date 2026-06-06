@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Post } from "contentlayer/generated";
 import { format, parseISO } from "date-fns";
-import { CalendarDays, Timer } from "lucide-react";
+import { CalendarDays, Layers, Timer } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,15 @@ const PostPreview = ({ post }: PostPreviewProps) => {
           "select-rounded-md block w-full rounded-md p-4 leading-none no-underline outline-none transition-colors hover:bg-foreground/10 hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
         )}
       >
+        {post.series && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-accent-foreground/30 bg-accent-foreground/10 px-2.5 py-1 text-xs font-medium text-accent-foreground">
+            <Layers size={13} />
+            <span>
+              {post.series.title}
+              <span className="font-normal opacity-70">{` · Part ${post.series.order}`}</span>
+            </span>
+          </span>
+        )}
         <h3 className="my-2 text-2xl font-bold text-foreground">{post.title}</h3>
         <div className="flex gap-2 text-sm leading-snug text-muted-foreground">
           <div className="flex items-center gap-1">
