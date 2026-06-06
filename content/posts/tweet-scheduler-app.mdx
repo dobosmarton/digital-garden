@@ -10,6 +10,19 @@ tags:
   - openai
   - ai
 description: "Trigger.dev released the new, v3 version recently, making creating asynchronous workflows even simpler in their cloud architecture with NodeJS. In this article, we are going to build a simple application and explore the capabilities of the new trigger.dev version."
+tools:
+  - slug: trigger-dev
+    note: "v3 — the fire-and-forget scheduler at the architectural center"
+  - slug: upstash-redis
+    note: "Serverless Redis holding token + tweet state between runs"
+  - slug: twitter-ts-sdk
+    note: "Official OAuth2 wrapper + createTweet()"
+  - slug: openai-chat
+    note: "gpt-3.5-turbo generating tweets from keywords + history"
+  - slug: zod-form-data
+    note: "FormData → typed schema for the scheduling form"
+  - slug: jest
+    note: "Unit-tests the cron transform (cron.spec.ts)"
 status: published
 ---
 

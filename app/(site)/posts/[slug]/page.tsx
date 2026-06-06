@@ -14,6 +14,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Separator } from "@/components/ui/separator";
 import { Mdx } from "@/components/mdx";
 import NewsletterSubscribe from "@/components/newsletter-subscribe";
+import { PostReferencesBox } from "@/components/post-references-box";
 import { PostSeriesBox } from "@/components/post-series-box";
 import { RelatedPosts } from "@/components/related-posts";
 import { SocialShare } from "@/components/social-share";
@@ -202,6 +203,11 @@ export default async function PostPage({ params }: PostProps) {
               </div>
             )}
             <Mdx code={post.body.code} />
+            {post.tools && post.tools.length > 0 && (
+              <div className="not-prose">
+                <PostReferencesBox tools={post.tools} />
+              </div>
+            )}
             <hr className="my-4" />
             <div className="flex flex-row items-center justify-between">
               {post.tags && (

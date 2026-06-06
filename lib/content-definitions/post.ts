@@ -5,6 +5,7 @@ import GithubSlugger from "github-slugger";
 import { calculateReadingTime } from "../utils";
 import { Author } from "./author";
 import { Series } from "./series";
+import { ToolReference } from "./tool-reference";
 
 export const tagOptions = [
   "development",
@@ -53,6 +54,11 @@ export const Post = defineDocumentType(() => ({
     series: {
       type: "nested",
       of: Series,
+    },
+    tools: {
+      type: "list",
+      of: ToolReference,
+      required: false,
     },
     author: {
       type: "nested",

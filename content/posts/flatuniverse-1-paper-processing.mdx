@@ -11,6 +11,19 @@ tags:
   - pinecone
   - data processing
 description: "Explore how FlatUniverse uses modern tools like Trigger.dev, Sequin, Neon, and Pinecone to transform research paper processing. This article dives into the technical architecture and workflows that make research papers accessible, from metadata extraction and vector embedding to AI-driven semantic search."
+tools:
+  - slug: trigger-dev
+    note: "Orchestrates the arXiv sync cron + async PDF/embedding tasks"
+  - slug: sequin
+    note: "CDC streaming Postgres changes to trigger embeddings — the glue"
+  - slug: neon
+    note: "Serverless Postgres storing paper metadata Sequin hooks into"
+  - slug: pinecone
+    note: "Embeddings indexed by metadataId#pageIndex for per-page retrieval"
+  - slug: llamaindex-ts
+    note: "SentenceSplitter / TextNode bridging PDF → embeddings"
+  - slug: openai-embeddings
+    note: "text-embedding-3-small vectorizes chunks with cosine similarity"
 status: published
 series:
   order: 1

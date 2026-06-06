@@ -11,6 +11,15 @@ tags:
   - agents
   - aoe2
 description: "A walkthrough of the 12-step pipeline that runs every agent turn — what each phase does, where the time actually goes, and why a 1-second game loop produces a 30-40 second agent turn."
+tools:
+  - slug: mss
+    note: "Fast cross-platform screen capture — not the obvious choice over PIL.ImageGrab"
+  - slug: anthropic-tool-use
+    note: "The agentic 7-call loop is built on this"
+  - slug: asyncio-create-task
+    note: "The fire-and-forget strategist pattern — stdlib but the key trick"
+  - slug: pillow
+    note: "BGRA→RGB + JPEG encode step (foundational, lighter interest)"
 status: published
 series:
   order: 2
