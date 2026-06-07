@@ -40,7 +40,7 @@ This post walks through all 12 steps, where the time actually goes, and which de
 
 AoE2's clock runs continuously. The agent doesn't pause it — it samples it. The loop fires, takes a screenshot, runs detection, builds context, sends that to the LLM, executes whatever comes back, then sleeps and repeats.
 
-The first half of that — screenshot through context assembly — takes under 500ms. Then the executor starts, and the loop blocks until it's done. On a **routine turn** that's a single structured-output call: the actions come back in one response (a few seconds) and the loop executes them. On a **combat or housing turn** the executor instead enters an agentic tool loop — the first response arrives in 8–10 seconds, and each subsequent tool call gets executed locally and sent back, adding another ~3 seconds per call; with up to 7 calls that path alone can run ~20–30 seconds.
+The first half of that — screenshot through context assembly — takes under 500ms. Then the executor starts. On a **routine turn** that's a single structured-output call (a few seconds); rather than block idle while it computes, the loop fills the wait with cheap deterministic upkeep and with executing the _previous_ turn's actions — routine turns pipeline (more at step 9). On a **combat or housing turn** the executor instead enters an agentic tool loop — the first response arrives in 8–10 seconds, and each subsequent tool call gets executed locally and sent back, adding another ~3 seconds per call; with up to 7 calls that path alone can run ~20–30 seconds. Combat turns don't pipeline; their tool loop is already acting mid-turn, so they run synchronously.
 
 The 0.3-second sleep at step 12 is a deliberate pause between iterations; it's negligible next to the executor either way.
 
@@ -61,7 +61,7 @@ Every iteration runs these phases in order:
 6.  Check for threats (alarm)
 7.  Maybe launch strategist
 8.  Build LLM context
-9.  Get actions from executor (parallelized with maintenance)
+9.  Get actions from executor (pipelined; reactive upkeep runs alongside)
 10. Update memory and goals
 11. Execute actions
 12. Wait (0.3 second sleep)
@@ -138,6 +138,8 @@ The executor is text-only. No screenshot, no vision. It receives a structured co
 
 - **Routine turns** (the common case) take a **single-shot** structured-output call: one `messages.parse`, the model returns a list of actions, and the game loop executes them. No tool loop, no intermediate roundtrips.
 - **Combat and housing turns** — the ones that need mid-turn rescans or composite tools — fall back to the **agentic tool loop** below. The router scans the context for signals like `under attack`, `defend`, or being housed, and keeps those turns on the loop.
+
+Two things happen _around_ this call. First, routine turns are **pipelined**: the executor call is launched in the background and the loop spends the wait doing real work — executing the previous turn's committed head (re-validated against the latest detection, with any stale target dropped) plus a deterministic **reactive tier** that queues a villager when population is below the age cap and puts idle villagers on the nearest resource, all with no LLM call. The plan computed this turn is then acted on next turn. Combat turns skip the pipeline and run synchronously, since their tool loop is already acting. Second, after entity-affecting actions the loop **verifies** the effect by re-detecting: a successful build logs `CONFIRMED`, a miss logs the exact phrase `no visible change`, which feeds a stuck-loop detector so the model notices when it's spinning its wheels.
 
 The rest of this section walks the tool-loop path, since it's the more involved of the two.
 
