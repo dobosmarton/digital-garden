@@ -46,6 +46,21 @@ export const toolsRegistry: Record<string, Tool> = {
     url: "https://github.com/python-pillow/Pillow",
     description: "Python imaging library for encoding and conversion",
   },
+  "claude-sonnet": {
+    name: "Claude (Sonnet 4.6)",
+    url: "https://platform.claude.com/docs/en/about-claude/models",
+    description: "The Anthropic model the strategist and executor run on",
+  },
+  "anthropic-structured-outputs": {
+    name: "Anthropic structured outputs",
+    url: "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+    description: "Constrain model responses to a fixed schema",
+  },
+  sahi: {
+    name: "SAHI",
+    url: "https://github.com/obss/sahi",
+    description: "Sliced inference for detecting objects in large images",
+  },
 
   // Document Q&A
   uploadthing: {

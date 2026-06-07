@@ -1,7 +1,7 @@
 ---
 title: "The 12-Step Game Loop"
 publishedDate: "2026-06-06"
-lastUpdatedDate: "2026-06-06"
+lastUpdatedDate: "2026-06-07"
 tags:
   - ai
   - python
@@ -10,23 +10,29 @@ tags:
   - llm
   - agents
   - aoe2
-description: "A walkthrough of the 12-step pipeline that runs every agent turn — what each phase does, where the time actually goes, and why a 1-second game loop produces a 30-40 second agent turn."
+description: "A walkthrough of the 12-step pipeline that runs every agent turn — what each phase does, where the time actually goes, and how routine turns resolve in seconds while combat turns fall back to a slower agentic tool loop."
 tools:
   - slug: mss
-    note: "Fast cross-platform screen capture — not the obvious choice over PIL.ImageGrab"
-  - slug: anthropic-tool-use
-    note: "The agentic 7-call loop is built on this"
-  - slug: asyncio-create-task
-    note: "The fire-and-forget strategist pattern — stdlib but the key trick"
+    note: "Fast game-window screen capture (~10–30ms)"
   - slug: pillow
-    note: "BGRA→RGB + JPEG encode step (foundational, lighter interest)"
+    note: "BGRA→RGB conversion and JPEG encoding"
+  - slug: asyncio-create-task
+    note: "Runs the strategist in the background so the loop never blocks on it"
+  - slug: anthropic-structured-outputs
+    note: "`messages.parse`, the single-shot routine-turn path"
+  - slug: anthropic-tool-use
+    note: "The agentic fallback loop for combat and housing turns"
+  - slug: sahi
+    note: "Sliced inference behind the adaptive detection modes (deep-dived in Episode 3)"
+  - slug: pyautogui
+    note: "Action execution; the `PAUSE=0.02` tuning lives here"
 status: published
 series:
   order: 2
   title: "AoE2 LLM Arena"
 ---
 
-One complete loop iteration takes 30 to 40 seconds. Most of that is one step: the executor, running an agentic tool loop with up to 7 LLM calls. Everything else — screenshot, detection, ownership classification, context assembly — takes well under a second combined.
+How long a loop iteration takes depends almost entirely on one step — the executor — which now runs in one of two modes. Most turns are routine and resolve in a single structured-output call (a few seconds). Combat and housing emergencies fall back to an agentic tool loop with up to 7 LLM calls, which can stretch a turn toward half a minute. Everything else — screenshot, detection, ownership classification, context assembly — takes well under a second combined.
 
 This post walks through all 12 steps, where the time actually goes, and which design decisions are doing the most work.
 
@@ -36,11 +42,11 @@ This post walks through all 12 steps, where the time actually goes, and which de
 
 AoE2's clock runs continuously. The agent doesn't pause it — it samples it. The loop fires, takes a screenshot, runs detection, builds context, sends that to the LLM, executes whatever comes back, then sleeps and repeats.
 
-The first half of that — screenshot through context assembly — takes under 500ms. Then the executor starts, and the loop blocks until it's done. The first LLM response arrives in 8–10 seconds. After that, each tool call the model makes gets executed locally and sent back, adding another ~3 seconds per call. With up to 7 tool calls per iteration, the executor portion alone is 29–31 seconds.
+The first half of that — screenshot through context assembly — takes under 500ms. Then the executor starts, and the loop blocks until it's done. On a **routine turn** that's a single structured-output call: the actions come back in one response (a few seconds) and the loop executes them. On a **combat or housing turn** the executor instead enters an agentic tool loop — the first response arrives in 8–10 seconds, and each subsequent tool call gets executed locally and sent back, adding another ~3 seconds per call; with up to 7 calls that path alone can run ~20–30 seconds.
 
-The 1-second sleep at step 12 exists as a deliberate pause between iterations, but it's mostly irrelevant — everything before it already took 30 seconds.
+The 0.3-second sleep at step 12 is a deliberate pause between iterations; it's negligible next to the executor either way.
 
-So one complete iteration is 30–40 seconds. The game keeps running during all of it. Someone watching the agent play would see it click a few things, then pause for half a minute, then click a few more things. That's the actual rhythm.
+So a routine iteration is a few seconds and a worst-case combat iteration is ~30. The game keeps running during all of it. Someone watching the agent play sees it act briskly most of the time, then occasionally pause to think through a fight. That's the actual rhythm.
 
 ---
 
@@ -60,30 +66,31 @@ Every iteration runs these phases in order:
 9.  Get actions from executor (parallelized with maintenance)
 10. Update memory and goals
 11. Execute actions
-12. Wait (1 second sleep)
+12. Wait (0.3 second sleep)
 ```
 
 A few of these — ownership classification, alarm checks, context building — are covered in later episodes, so I won't spend long on them here.
 
 Here's how long each takes:
 
-| Phase                         | Time                                                   |
-| ----------------------------- | ------------------------------------------------------ |
-| Window check + focus          | ~200ms worst case                                      |
-| Screenshot capture            | ~10–30ms                                               |
-| YOLO detection (adaptive)     | ~100–200ms                                             |
-| YOLO detection (full SAHI)    | ~234ms                                                 |
-| Ownership classification      | ~5ms                                                   |
-| Alarm check                   | &lt;1ms                                                |
-| Executor — first LLM response | ~8–10s                                                 |
-| Executor — per tool call      | ~3s each, up to 7                                      |
-| Action execution              | ~50ms per action                                       |
-| Loop delay                    | 1.0s                                                   |
-| **Total per iteration**       | **~30–40s** (executor dominates: 8–10s + up to 7 × 3s) |
+| Phase                                         | Time                                                                     |
+| --------------------------------------------- | ------------------------------------------------------------------------ |
+| Window check + focus                          | ~200ms worst case                                                        |
+| Screenshot capture                            | ~10–30ms                                                                 |
+| YOLO detection (adaptive)                     | ~100–200ms                                                               |
+| YOLO detection (full SAHI)                    | ~234ms                                                                   |
+| Ownership classification                      | ~5ms                                                                     |
+| Alarm check                                   | &lt;1ms                                                                  |
+| Executor — single-shot (routine turns)        | ~2–4s                                                                    |
+| Executor — tool loop, first response (combat) | ~8–10s                                                                   |
+| Executor — per tool call (combat)             | ~3s each, up to 7                                                        |
+| Action execution                              | ~50ms per action                                                         |
+| Loop delay                                    | 0.3s                                                                     |
+| **Total per iteration**                       | **~3–5s routine**; up to **~30s** on a combat turn (tool loop dominates) |
 
 The strategist is not in that table because it runs asynchronously in the background. I'll come back to that.
 
-The dominant cost is the executor: 7 tool calls at roughly 3 seconds each, plus the initial 8–10s response. That's where the 30–40 second cycle time comes from. Detection, screenshot capture, and action execution together take under 500ms. They're not the bottleneck.
+The dominant cost is the executor. On a routine turn that's one structured call; on a combat turn it's the tool loop — up to 7 calls at roughly 3 seconds each, plus the initial 8–10s response, which is where the ~30-second worst case comes from. Detection, screenshot capture, and action execution together take under 500ms. They're never the bottleneck.
 
 ---
 
@@ -127,9 +134,14 @@ If a strategist task is still running when a new one would fire, the loop reuses
 
 ---
 
-## Step 9: The agentic tool loop
+## Step 9: Two executor paths
 
-The executor is text-only. No screenshot, no vision. It receives a structured context block — entity list, goals, resources, recent turn history, game knowledge — and enters an agentic tool loop.
+The executor is text-only. No screenshot, no vision. It receives a structured context block — entity list, goals, resources, recent turn history, game knowledge — and `get_actions()` routes the turn down one of two paths (`_use_single_shot`):
+
+- **Routine turns** (the common case) take a **single-shot** structured-output call: one `messages.parse`, the model returns a list of actions, and the game loop executes them. No tool loop, no intermediate roundtrips.
+- **Combat and housing turns** — the ones that need mid-turn rescans or composite tools — fall back to the **agentic tool loop** below. The router scans the context for signals like `under attack`, `defend`, or being housed, and keeps those turns on the loop.
+
+The rest of this section walks the tool-loop path, since it's the more involved of the two.
 
 The context looks something like this:
 
@@ -154,7 +166,7 @@ Turn 3: Queued villager, sent villager_1 to sheep_0
 
 Claude responds with a tool call. The executor runs it, the result goes back to Claude, and Claude decides what to do next. The available tools are 7 base action types (`click`, `right_click`, `press`, `drag`, `scroll`, `wait`, `detect`) plus 3 composite tools (`build`, `send_villager`, `queue_villager`) that bundle multi-step sequences.
 
-A typical early-game sequence:
+When a turn runs the loop, the shape looks like this:
 
 ```
 → detect (intent: "scan for idle villagers")
@@ -254,4 +266,4 @@ The one failure mode that isn't graceful: if the executor enters a loop repeatin
 
 ## What's next
 
-The loop runs every second. Most of what makes it useful happens inside steps 4 and 9 — detection and reasoning. Episode 3 covers detection: how to build a 60-class YOLO model for an isometric game, why tiling at multiple scales matters, and how entity IDs stay stable across frames so the LLM can refer to the same sheep across turns.
+The loop runs continuously — briskly on routine turns, slower when a fight forces the tool loop. Most of what makes it useful happens inside steps 4 and 9 — detection and reasoning. Episode 3 covers detection: how to build a 60-class YOLO model for an isometric game, why tiling at multiple scales matters, and how entity IDs stay stable across frames so the LLM can refer to the same sheep across turns.

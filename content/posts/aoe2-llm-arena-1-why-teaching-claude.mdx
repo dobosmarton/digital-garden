@@ -1,7 +1,7 @@
 ---
 title: "How We're Teaching Claude to Play Age Of Empires 2"
 publishedDate: "2026-05-24"
-lastUpdatedDate: "2026-05-24"
+lastUpdatedDate: "2026-06-07"
 tags:
   - ai
   - python
@@ -14,11 +14,15 @@ tags:
 description: "The no-API premise, why we split into a vision strategist and a text executor, and how prompt caching makes the economics work. Sets up the rest of the series."
 tools:
   - slug: ultralytics-yolo
-    note: "The detection framework — readers will want to see the model/training API"
+    note: 'The 60-class entity detector that gives the agent its "eyes"'
   - slug: pyautogui
-    note: 'The "how does it actually move the mouse" answer'
+    note: "Sends mouse clicks and keypresses to the game window"
+  - slug: claude-sonnet
+    note: "The model both the strategist and executor run on"
+  - slug: anthropic-structured-outputs
+    note: "The single fast executor call on routine turns"
   - slug: anthropic-prompt-caching
-    note: "The 90% cost cut hinges on this — the doc backs the claim"
+    note: "`cache_control: ephemeral`, the 90% cost cut the economics depend on"
 status: published
 series:
   order: 1
@@ -51,7 +55,7 @@ I chose AoE2 for four specific reasons: it's complex enough to be a real test, d
 
 My ground rule was to not modify or inject anything to the AoE2 binary to control the game but to build an agent or agent swarm that controls the game from outside, like a real human would. The inputs are the visual representation of the game state, the map, the indicators on the map, the same things you would observe to build up the game state in your head.
 
-A quick note on terminology: AoE2 is a real-time strategy game, not a turn-based one — the game clock never stops. But the agent has to act in discrete steps, so I impose an artificial "turn" on top of the real-time loop: a fixed-cadence tick (roughly every 1 second of wall-clock time) where the pipeline captures the screen, runs perception, and lets the LLM decide on actions. The game keeps running between turns; the agent just samples it. Throughout this series, "turn" always means one of these agent decision cycles, not a pause in the game.
+A quick note on terminology: AoE2 is a real-time strategy game, not a turn-based one — the game clock never stops. But the agent has to act in discrete steps, so I impose an artificial "turn" on top of the real-time loop: a tick where the pipeline captures the screen, runs perception, and lets the LLM decide on actions. There's a small fixed delay between ticks (0.3s), but in practice the LLM call dominates each turn's wall-clock. The game keeps running between turns; the agent just samples it. Throughout this series, "turn" always means one of these agent decision cycles, not a pause in the game.
 
 Every turn, the agent receives a structured text representation of the game world — a list of detected entities (`sheep_0 at (450, 320)`, `town_center_0 at (512, 400)`, `villager_2 at (380, 290)`) plus cached resource readings. It uses that to decide what to do: gather food, queue a villager, build a lumber camp, respond to a threat.
 
@@ -73,9 +77,9 @@ The solution is to separate vision from execution into two tiers:
 
 **Strategist**: Receives a screenshot. Reads the game UI directly — resources, population, current age. Outputs 3–5 prioritized goals. Runs infrequently: every 3 turns in Dark Age, every 5 in Feudal, every 10 in Castle and Imperial — or immediately when an alarm fires (enemy spotted, under attack).
 
-**Executor**: Receives text only — the YOLO entity list, the strategist's goals, recent memory, game knowledge. Runs every turn. Executes actions via an agentic tool-use loop, up to 7 tool calls per turn.
+**Executor**: Receives text only — the YOLO entity list, the strategist's goals, recent memory, game knowledge. Runs every turn. Routine turns resolve in a single fast structured-output call; combat and housing emergencies fall back to an agentic tool-use loop (up to 7 tool calls). A per-call `effort` setting (default `low`) keeps the common case quick.
 
-Both tiers run the same underlying model. The split is about separating expensive vision from cheap text reasoning, and running them at different frequencies.
+Both tiers run the same underlying model — `claude-sonnet-4-6` (the executor started on Haiku and moved to Sonnet for more reliable instruction-following). The split is about separating expensive vision from cheap text reasoning, and running them at different frequencies.
 
 ```
 Screenshot → Strategist → Goals
@@ -96,9 +100,9 @@ Without caching, that block is priced at $3.00/MTok every turn. Anthropic's prom
 In practice:
 
 - **Block 1** (~800 tokens): `core.md` + `hotkeys.md` + cross-game memories. Stable across the entire game. Cache hit rate after turn 1: essentially 100%.
-- **Block 2** (~600 tokens): age-specific prompt (`dark.md`, `feudal.md`, etc.). Swapped ~3 times per game when the agent ages up.
+- **Block 2** (~600 tokens): age-specific prompt (`dark.md`, `feudal.md`, etc.). Cached too — it changes only ~3 times per game when the agent ages up, so within an age it's a cache hit every turn.
 
-The dynamic per-turn context — entity list, resources, recent turns — is not cached, because it changes every turn. That part is small.
+The dynamic per-turn context — entity list, resources, recent turns — is not cached, because it changes every turn. That part is small. (On combat turns that run the tool loop, a moving cache breakpoint keeps the growing conversation cached across iterations — more in Episode 5.)
 
 Result: executor turns cost roughly $0.0006 each after the cache warms. A full game run costs under a dollar in executor tokens. That's a budget you can actually iterate within.
 
@@ -114,7 +118,7 @@ Cross-game memory injection means the agent that starts game 50 has patterns fro
 
 Military is weak. The agent understands it should train scouts or militia, but unit composition timing is inconsistent. Long games degrade as the working memory window fills and early-game state falls off.
 
-Multiplayer is not attempted. Turn latency is ~30–40 seconds currently (driven by the LLM agentic loop, not the 1-second game loop), which is wrong for real-time PvP.
+Multiplayer is not attempted. Turn latency varies by path — routine turns resolve in a few seconds (a single executor call plus the 0.3s loop delay), but combat turns that fall back to the full tool loop can still reach ~20–30 seconds. Either way it's LLM-bound, not game-loop-bound, and that slow tail is wrong for real-time PvP.
 
 The goal is not to beat a skilled human player. The goal is a working pattern for LLM agents operating in real visual environments — how to structure the perception-reasoning-execution loop, how to manage costs across many turns, how to accumulate knowledge across runs without fine-tuning. AoE2 is the test environment. The pattern is what matters.
 
