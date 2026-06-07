@@ -1,22 +1,20 @@
 import { ContentNavItem, NavItem } from "@/types";
 
-import siteMetadata, { defaultAuthor } from "@/lib/metadata";
+import { projects } from "@/lib/projects-data";
 
-const content: ContentNavItem[] = [
-  {
-    title: "Blog",
-    href: "/posts",
-    description: "Blogposts. Mostly about web development. Or chicken fingers",
-  },
-];
+const projectLinks: ContentNavItem[] = projects.map((project) => ({
+  title: project.title,
+  href: project.href,
+  description: project.description,
+}));
 
 export const navigationLinks: NavItem[] = [
   {
     title: "Blog",
     href: "/posts",
   },
-  /*  {
+  {
     title: "Projects",
-    href: "/projects",
-  }, */
+    content: projectLinks,
+  },
 ];

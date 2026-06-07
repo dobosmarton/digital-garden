@@ -2,11 +2,9 @@ import Image from "next/image";
 import { Mail } from "lucide-react";
 
 import { defaultAuthor } from "@/lib/metadata";
-import { projects } from "@/lib/projects-data";
 import { CopyButton } from "@/components/copy-button";
 import NewsletterSubscribe from "@/components/newsletter-subscribe";
 import { SocialButton } from "@/components/social-button";
-import { SpotlightCard } from "@/components/spotlight-card";
 
 export default async function SocialPage() {
   return (
@@ -19,12 +17,6 @@ export default async function SocialPage() {
               <h1 className="font-heading text-4xl font-bold">{defaultAuthor.name}</h1>
               <p>{defaultAuthor.handle}</p>
             </div>
-          </div>
-          <h2 className="mb-2 mt-6 font-heading text-2xl font-bold">My projects</h2>
-          <div className="grid items-stretch gap-4 md:grid-cols-2">
-            {projects.map((item) => (
-              <SpotlightCard key={item.href} {...item} />
-            ))}
           </div>
           <h2 className="mb-2 mt-6 font-heading text-2xl font-bold">My socials</h2>
           <div className="mb-4 flex w-full max-w-2xl flex-col space-y-4">
