@@ -49,10 +49,9 @@ export function debounce<T extends (...args: any[]) => any>(func: T, wait: numbe
 export const sortByDate = (a: Post, b: Post) =>
   compareDesc(new Date(a.lastUpdatedDate || a.publishedDate), new Date(b.lastUpdatedDate || b.publishedDate));
 
-// Sort posts newest-first, but keep a series together and ordered by part number.
-// A series is anchored to its most recent part (so it still bubbles up by recency),
-// and parts within it always sort ascending — Part 1 stays before Part 2 even if
-// Part 1 was updated more recently.
+// Sort posts newest-first, keeping a series together with its latest part first.
+// A series is anchored to its most recent part (so it bubbles up by recency), and
+// parts within it sort descending — the latest part leads the group.
 export const sortPosts = (posts: Post[]): Post[] => {
   const dateOf = (p: Post) => new Date(p.lastUpdatedDate || p.publishedDate).getTime();
 
@@ -71,8 +70,8 @@ export const sortPosts = (posts: Post[]): Post[] => {
 
     const aTitle = a.series?.title;
     const bTitle = b.series?.title;
-    // same series → order by part ascending
-    if (aTitle && aTitle === bTitle) return Number(a.series!.order) - Number(b.series!.order);
+    // same series → latest part first (descending)
+    if (aTitle && aTitle === bTitle) return Number(b.series!.order) - Number(a.series!.order);
     // different series sharing an anchor date → keep each grouped, stable by title
     if (aTitle && bTitle) return aTitle.localeCompare(bTitle);
     // fall back to own date, newest first
