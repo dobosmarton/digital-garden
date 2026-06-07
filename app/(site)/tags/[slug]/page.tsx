@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { allPosts, Post } from "contentlayer/generated";
 
 import { tagUrl } from "@/lib/seo";
-import { sortByDate } from "@/lib/utils";
+import { sortPosts } from "@/lib/utils";
 import PostPreview from "@/components/post-preview";
 
 // Get sorted articles from the contentlayer
@@ -40,10 +40,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function TagPage({ params }: { params: { slug: string } }) {
   const tag = params.slug;
 
-  const posts = allPosts
-    .filter((post) => post.status === "published")
-    .filter((post) => post.tags?.includes(tag))
-    .sort(sortByDate);
+  const posts = sortPosts(
+    allPosts.filter((post) => post.status === "published").filter((post) => post.tags?.includes(tag))
+  );
 
   if (!posts) {
     notFound();

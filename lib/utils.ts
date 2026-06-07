@@ -49,4 +49,35 @@ export function debounce<T extends (...args: any[]) => any>(func: T, wait: numbe
 export const sortByDate = (a: Post, b: Post) =>
   compareDesc(new Date(a.lastUpdatedDate || a.publishedDate), new Date(b.lastUpdatedDate || b.publishedDate));
 
+// Sort posts newest-first, but keep a series together and ordered by part number.
+// A series is anchored to its most recent part (so it still bubbles up by recency),
+// and parts within it always sort ascending — Part 1 stays before Part 2 even if
+// Part 1 was updated more recently.
+export const sortPosts = (posts: Post[]): Post[] => {
+  const dateOf = (p: Post) => new Date(p.lastUpdatedDate || p.publishedDate).getTime();
+
+  const seriesAnchor = new Map<string, number>();
+  for (const post of posts) {
+    const title = post.series?.title;
+    if (!title) continue;
+    seriesAnchor.set(title, Math.max(seriesAnchor.get(title) ?? -Infinity, dateOf(post)));
+  }
+
+  const anchorOf = (p: Post) => (p.series?.title ? seriesAnchor.get(p.series.title)! : dateOf(p));
+
+  return [...posts].sort((a, b) => {
+    const byAnchor = anchorOf(b) - anchorOf(a);
+    if (byAnchor !== 0) return byAnchor;
+
+    const aTitle = a.series?.title;
+    const bTitle = b.series?.title;
+    // same series → order by part ascending
+    if (aTitle && aTitle === bTitle) return Number(a.series!.order) - Number(b.series!.order);
+    // different series sharing an anchor date → keep each grouped, stable by title
+    if (aTitle && bTitle) return aTitle.localeCompare(bTitle);
+    // fall back to own date, newest first
+    return dateOf(b) - dateOf(a);
+  });
+};
+
 export const pageCount = (number: number) => Math.ceil(number / siteMetadata.postsPerPage);

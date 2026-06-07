@@ -1,7 +1,7 @@
 import { allPosts } from "contentlayer/generated";
 
 import siteMetadata from "@/lib/metadata";
-import { cn, sortByDate } from "@/lib/utils";
+import { cn, sortPosts } from "@/lib/utils";
 import Footer from "@/components/footer";
 import { Navigation } from "@/components/navigation";
 
@@ -10,10 +10,11 @@ interface RootLayoutProps {
 }
 
 export default function RootLayout({ children }: RootLayoutProps) {
-  const commandPosts = allPosts
-    .filter((post) => post.status === "published")
-    .sort(sortByDate)
-    .map((post) => ({ slug: post.slug, title: post.title, tags: post.tags }));
+  const commandPosts = sortPosts(allPosts.filter((post) => post.status === "published")).map((post) => ({
+    slug: post.slug,
+    title: post.title,
+    tags: post.tags,
+  }));
 
   return (
     <>

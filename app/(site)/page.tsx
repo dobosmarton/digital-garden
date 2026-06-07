@@ -3,7 +3,7 @@ import { allPages, allPosts } from "contentlayer/generated";
 import { ArrowRight } from "lucide-react";
 
 import siteMetadata from "@/lib/metadata";
-import { sortByDate } from "@/lib/utils";
+import { sortPosts } from "@/lib/utils";
 import { HeroImage } from "@/components/hero-image";
 import { Mdx } from "@/components/mdx";
 import NewsletterSubscribe from "@/components/newsletter-subscribe";
@@ -21,10 +21,10 @@ async function getAboutPage() {
 
 export default async function Home() {
   const aboutPage = await getAboutPage();
-  const posts = allPosts
-    .filter((post) => post.status === "published")
-    .sort(sortByDate)
-    .slice(0, siteMetadata.postsOnHomePage);
+  const posts = sortPosts(allPosts.filter((post) => post.status === "published")).slice(
+    0,
+    siteMetadata.postsOnHomePage
+  );
 
   return (
     <div className="pb-10">
