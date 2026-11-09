@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from "@/components/analytics";
 import { BackTopButton } from "@/components/back-to-top";
 import { ThemeProvider } from "@/components/theme-provider";
+import { WebMCP } from "@/components/webmcp";
 
 const spaceGrotesk = Karla({
   subsets: ["latin"],
@@ -66,6 +67,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           {children}
           <BackTopButton />
           <Toaster />
+          <WebMCP />
         </ThemeProvider>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personLd) }} />

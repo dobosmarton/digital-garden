@@ -83,7 +83,8 @@
     "prettier-plugin-tailwindcss": "0.5.4",
     "tailwindcss": "3.3.3",
     "tailwindcss-animate": "1.0.7",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "webmcp-types": "0.1.10"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

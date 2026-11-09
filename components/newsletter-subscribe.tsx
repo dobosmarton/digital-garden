@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 import siteMetadata from "@/lib/metadata";
+import { subscribeToNewsletter } from "@/lib/newsletter";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
@@ -45,17 +46,13 @@ function useNewsletterForm() {
   });
 
   const onSubmit = async (values: FormValues) => {
-    const response = await fetch("/newsletter", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: values.email,
-        company: values.company,
-        elapsedMs: Date.now() - mountedAtRef.current,
-      }),
+    const result = await subscribeToNewsletter({
+      email: values.email,
+      company: values.company,
+      elapsedMs: Date.now() - mountedAtRef.current,
     });
 
-    if (!response?.ok) {
+    if (!result.ok) {
       return toast({
         title: "Something went wrong.",
         description: "The subscription did not happen. Please try again.",
