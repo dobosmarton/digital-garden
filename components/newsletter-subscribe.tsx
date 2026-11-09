@@ -2,16 +2,12 @@
 
 import React from "react";
 import Link from "next/link";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Mail } from "lucide-react";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
 
 import siteMetadata from "@/lib/metadata";
 import { subscribeToNewsletter } from "@/lib/newsletter";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { Button, type ButtonProps } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -21,68 +17,89 @@ export type CTAProps = {
   buttonText: string;
 };
 
-const formSchema = z.object({
-  email: z.email(),
-  company: z.string().optional(),
-});
+const INVALID_EMAIL_MESSAGE = "Invalid email address";
 
-type FormValues = z.infer<typeof formSchema>;
+const SUCCESS_TOAST = {
+  title: "Almost there!",
+  description: "Check your inbox to confirm your subscription.",
+} as const;
 
-const HONEYPOT_STYLE: React.CSSProperties = {
-  position: "absolute",
-  left: "-9999px",
-  width: "1px",
-  height: "1px",
-  overflow: "hidden",
+const FAILURE_TOAST = {
+  title: "Something went wrong.",
+  description: "The subscription did not happen. Please try again.",
+  variant: "destructive",
+} as const;
+
+type NewsletterFormProps = {
+  buttonText: string;
+  placeholder: string;
+  buttonVariant?: ButtonProps["variant"];
+  className?: string;
 };
 
-function useNewsletterForm() {
+// Plain form with native email validation; the /newsletter route re-validates server-side.
+function NewsletterForm({ buttonText, placeholder, buttonVariant, className }: NewsletterFormProps) {
   const { toast } = useToast();
+  const errorId = React.useId();
+  const [invalid, setInvalid] = React.useState(false);
+  const [isPending, startTransition] = React.useTransition();
+  // Time-to-submit feeds the server's bot check; set after mount to keep render pure.
   const mountedAtRef = React.useRef(0);
   React.useEffect(() => {
     mountedAtRef.current = Date.now();
   }, []);
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: { email: "", company: "" },
-  });
-
-  const onSubmit = async (values: FormValues) => {
-    const result = await subscribeToNewsletter({
-      email: values.email,
-      company: values.company,
-      elapsedMs: Date.now() - mountedAtRef.current,
-    });
-
-    if (!result.ok) {
-      return toast({
-        title: "Something went wrong.",
-        description: "The subscription did not happen. Please try again.",
-        variant: "destructive",
-      });
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.checkValidity()) {
+      setInvalid(true);
+      return;
     }
 
-    form.reset();
-    return toast({
-      title: "Almost there!",
-      description: "Check your inbox to confirm your subscription.",
+    const data = new FormData(form);
+    startTransition(async () => {
+      const result = await subscribeToNewsletter({
+        email: String(data.get("email")),
+        company: String(data.get("company") ?? ""),
+        elapsedMs: Date.now() - mountedAtRef.current,
+      });
+      if (result.ok) form.reset();
+      toast(result.ok ? SUCCESS_TOAST : FAILURE_TOAST);
     });
   };
 
-  return { form, onSubmit };
-}
-
-function Honeypot({ register }: { register: ReturnType<typeof useForm<FormValues>>["register"] }) {
   return (
-    <input
-      type="text"
-      tabIndex={-1}
-      autoComplete="off"
-      aria-hidden="true"
-      style={HONEYPOT_STYLE}
-      {...register("company")}
-    />
+    <form noValidate onSubmit={onSubmit} className={cn("flex w-full flex-col", className)}>
+      {/* Honeypot: invisible to people, filled in by naive bots. */}
+      <input
+        type="text"
+        name="company"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="absolute -left-[9999px] h-px w-px overflow-hidden"
+      />
+      <div className="flex-auto space-y-2">
+        <Input
+          type="email"
+          name="email"
+          required
+          placeholder={placeholder}
+          aria-invalid={invalid}
+          aria-describedby={invalid ? errorId : undefined}
+          onChange={() => setInvalid(false)}
+        />
+        {invalid ? (
+          <p id={errorId} className="text-sm font-medium text-destructive">
+            {INVALID_EMAIL_MESSAGE}
+          </p>
+        ) : null}
+      </div>
+      <Button type="submit" variant={buttonVariant} disabled={isPending}>
+        <Mail className="mr-2 h-4 w-4" /> {buttonText}
+      </Button>
+    </form>
   );
 }
 
@@ -93,8 +110,6 @@ const NewsletterSubscribe = ({
   className,
   ...props
 }: CTAProps & React.HTMLAttributes<HTMLDivElement>) => {
-  const { form, onSubmit } = useNewsletterForm();
-
   return (
     <section
       className={cn("relative isolate my-24 overflow-hidden bg-primary py-6 text-primary-foreground", className)}
@@ -108,26 +123,12 @@ const NewsletterSubscribe = ({
         </div>
 
         <div className="mx-auto mt-8 max-w-xl">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full flex-col gap-3 md:flex-row">
-              <Honeypot register={form.register} />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem className="flex-auto">
-                    <FormControl>
-                      <Input type="email" placeholder="anakin.skywalker@darksi.de" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" variant="secondary" disabled={form.formState.isSubmitting}>
-                <Mail className="mr-2 h-4 w-4" /> {buttonText}
-              </Button>
-            </form>
-          </Form>
+          <NewsletterForm
+            buttonText={buttonText}
+            placeholder="anakin.skywalker@darksi.de"
+            buttonVariant="secondary"
+            className="gap-3 md:flex-row"
+          />
           {siteMetadata.newsletterUrl && (
             <div className="mt-4 flex items-center justify-center">
               <Button asChild variant="ghost">
@@ -175,31 +176,10 @@ export const NewsletterSubscribeInline = ({
   buttonText: string;
   placeholder?: string;
 } & React.HTMLAttributes<HTMLDivElement>) => {
-  const { form, onSubmit } = useNewsletterForm();
-
   return (
     <div className={cn("w-full", className)} {...props}>
       {caption && <p className="mb-2 text-sm text-muted-foreground">{caption}</p>}
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full flex-col gap-2 sm:flex-row">
-          <Honeypot register={form.register} />
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem className="flex-auto">
-                <FormControl>
-                  <Input type="email" placeholder={placeholder} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            <Mail className="mr-2 h-4 w-4" /> {buttonText}
-          </Button>
-        </form>
-      </Form>
+      <NewsletterForm buttonText={buttonText} placeholder={placeholder} className="gap-2 sm:flex-row" />
     </div>
   );
 };
@@ -211,8 +191,6 @@ export const NewsletterSubscribeCompact = ({
   className,
   ...props
 }: CTAProps & React.HTMLAttributes<HTMLDivElement>) => {
-  const { form, onSubmit } = useNewsletterForm();
-
   return (
     <aside
       className={cn(
@@ -225,26 +203,7 @@ export const NewsletterSubscribeCompact = ({
         <h3 className="font-heading text-lg font-semibold">{title}</h3>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full flex-col gap-2 sm:flex-row">
-          <Honeypot register={form.register} />
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem className="flex-auto">
-                <FormControl>
-                  <Input type="email" placeholder="you@example.com" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            <Mail className="mr-2 h-4 w-4" /> {buttonText}
-          </Button>
-        </form>
-      </Form>
+      <NewsletterForm buttonText={buttonText} placeholder="you@example.com" className="gap-2 sm:flex-row" />
     </aside>
   );
 };

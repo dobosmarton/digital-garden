@@ -1,6 +1,8 @@
 // Machine-readable views of published posts, served as static JSON under
 // /api/posts for in-browser agents (see lib/webmcp-tools.ts).
 
+import "server-only";
+
 import { allPosts, type Post } from "contentlayer/generated";
 import GithubSlugger from "github-slugger";
 

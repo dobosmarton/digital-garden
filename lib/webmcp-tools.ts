@@ -12,6 +12,7 @@ import { z } from "zod";
 
 import { subscribeToNewsletter } from "@/lib/newsletter";
 import type { PostDetail, PostIndex, PostSummary } from "@/lib/post-api";
+import { includesAllTerms, toSearchTerms } from "@/lib/search";
 
 export type ToolContext = {
   navigate: (href: string) => Promise<void>;
@@ -50,16 +51,24 @@ const invalidInput = (error: z.ZodError) => ({
 // Static JSON, fetched once per page session. A failed fetch is retried on the next call.
 function cachedJson<T>() {
   const cache = new Map<string, Promise<T | null>>();
-  return (url: string) => {
-    if (!cache.has(url)) {
-      const request = fetch(url).then((response) => (response.ok ? (response.json() as Promise<T>) : null));
-      request.then(
-        (result) => result === null && cache.delete(url),
-        () => cache.delete(url)
-      );
-      cache.set(url, request);
+
+  const load = async (url: string): Promise<T | null> => {
+    try {
+      const response = await fetch(url);
+      if (response.ok) return (await response.json()) as T;
+    } catch {
+      // Network error: fall through and allow a retry.
     }
-    return cache.get(url)!;
+    cache.delete(url);
+    return null;
+  };
+
+  return (url: string) => {
+    const cached = cache.get(url);
+    if (cached) return cached;
+    const request = load(url);
+    cache.set(url, request);
+    return request;
   };
 }
 
@@ -68,17 +77,8 @@ const fetchPost = cachedJson<PostDetail>();
 const INDEX_URL = "/api/posts";
 const INDEX_UNAVAILABLE = { error: "The post index is temporarily unavailable. Please try again." };
 
-function matchesQuery(post: PostSummary, query: string) {
-  const haystack = [post.title, post.description, post.series?.title, ...post.tags]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return query
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean)
-    .every((term) => haystack.includes(term));
-}
+const searchableText = (post: PostSummary) =>
+  [post.title, post.description, post.series?.title, ...post.tags].filter(Boolean).join(" ");
 
 const searchInput = z.object({
   query: z.string().trim().optional(),
@@ -123,8 +123,9 @@ export function createTools({ navigate, setTheme }: ToolContext): WebMCP.ModelCo
           return { error: `Unknown tag "${tag}". Available tags: ${index.tags.map((t) => t.tag).join(", ")}.` };
         }
 
+        const terms = toSearchTerms(query ?? "");
         const matches = index.posts.filter(
-          (post) => (!knownTag || post.tags.includes(knownTag)) && (!query || matchesQuery(post, query))
+          (post) => (!knownTag || post.tags.includes(knownTag)) && includesAllTerms(searchableText(post), terms)
         );
         return { total: matches.length, posts: matches.slice(0, limit) };
       },

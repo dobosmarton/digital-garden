@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Mail } from "lucide-react";
 
-import { brandIconPaths } from "@/lib/brand-icons";
 import { Button, ButtonProps } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { BrandIcon } from "@/components/brand-icon";
 
 interface SocialShareProps {
   url: string;
@@ -32,16 +32,7 @@ export const SocialShare = ({ url, text }: SocialShareProps) => {
             rel="noreferrer noopener"
             target="_blank"
           >
-            <svg
-              role="img"
-              viewBox="0 0 24 24"
-              className="mr-2 h-3 w-3"
-              fill="currentColor"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d={brandIconPaths.x}></path>
-            </svg>
-            X (formerly Twitter)
+            <BrandIcon name="x" className="mr-2 h-3 w-3" />X (formerly Twitter)
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
@@ -50,15 +41,7 @@ export const SocialShare = ({ url, text }: SocialShareProps) => {
             rel="noreferrer noopener"
             target="_blank"
           >
-            <svg
-              role="img"
-              viewBox="0 0 24 24"
-              className="mr-2 h-3 w-3"
-              fill="currentColor"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d={brandIconPaths.facebook}></path>
-            </svg>
+            <BrandIcon name="facebook" className="mr-2 h-3 w-3" />
             Facebook
           </Link>
         </DropdownMenuItem>
@@ -68,15 +51,7 @@ export const SocialShare = ({ url, text }: SocialShareProps) => {
             rel="noreferrer noopener"
             target="_blank"
           >
-            <svg
-              role="img"
-              viewBox="0 0 24 24"
-              className="mr-2 h-3 w-3"
-              fill="currentColor"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d={brandIconPaths.linkedin}></path>
-            </svg>
+            <BrandIcon name="linkedin" className="mr-2 h-3 w-3" />
             LinkedIn
           </Link>
         </DropdownMenuItem>
@@ -86,15 +61,7 @@ export const SocialShare = ({ url, text }: SocialShareProps) => {
             rel="noreferrer noopener"
             target="_blank"
           >
-            <svg
-              role="img"
-              viewBox="0 0 24 24"
-              className="mr-2 h-3 w-3"
-              fill="currentColor"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d={brandIconPaths.ycombinator}></path>
-            </svg>
+            <BrandIcon name="ycombinator" className="mr-2 h-3 w-3" />
             Hacker News
           </Link>
         </DropdownMenuItem>

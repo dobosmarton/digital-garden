@@ -1,32 +1,24 @@
-"use client";
+// Server component: posts render to HTML at build time, so the compiled MDX code and
+// the MDX runtime never reach the browser. Interactive pieces (the newsletter
+// form) are client components rendered as islands inside the content.
 
-import NextImage, { ImageProps } from "next/image";
-import Link from "next/link";
-import { useMDXComponent } from "next-contentlayer2/hooks";
+import "server-only";
+
+import type { ComponentType } from "react";
+import * as React from "react";
+import * as jsxRuntime from "react/jsx-runtime";
+import NextImage from "next/image";
+import * as ReactDOM from "react-dom";
 import type { TweetProps } from "react-tweet";
 import { Tweet } from "react-tweet";
 
 import { NewsletterCTA } from "./newsletter-cta";
 import { YouTubeVideo } from "./youtube-video";
 
-function CustomLink(props: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
-  const { href } = props;
-  const isExternalLink = href && href.startsWith("http");
-
-  if (isExternalLink) {
-    return <a target="_blank" href={href} rel="noopener noreferrer" {...props} />;
-  }
-  return (
-    //@ts-expect-error
-    <Link href={href} />
-  );
-}
-
 const components = {
-  Image: (props: ImageProps) => <NextImage {...props} />,
+  Image: NextImage,
   NewsletterCTA,
   YouTubeVideo,
-  // a: CustomLink,
   Tweet: (props: TweetProps) => {
     return (
       <div className="not-prose [&>div]:mx-auto">
@@ -36,14 +28,23 @@ const components = {
   },
 };
 
+type MDXContent = ComponentType<{ components?: Record<string, ComponentType<any>> }>;
+
+// Equivalent of mdx-bundler's getMDXComponent: evaluates the code Contentlayer compiled
+// with mdx-bundler, which expects React, ReactDOM and the JSX runtime in scope.
+function getMDXComponent(code: string): MDXContent {
+  const scope = { React, ReactDOM, _jsx_runtime: jsxRuntime };
+  const fn = new Function(...Object.keys(scope), code);
+  return fn(...Object.values(scope)).default;
+}
+
 interface MdxProps {
   code: string;
 }
 
 export function Mdx({ code }: MdxProps) {
-  const Component = useMDXComponent(code);
-  // useMDXComponent memoizes the component per `code`, so it is stable across renders.
-  // TODO: Figure out how to type this
+  const Component = getMDXComponent(code);
+  // Server components render once per request/build, so there is no re-render identity to preserve.
   // eslint-disable-next-line react-hooks/static-components
-  return <Component components={components as any} />;
+  return <Component components={components} />;
 }
