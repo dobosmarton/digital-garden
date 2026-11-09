@@ -56,7 +56,7 @@ export default async function Home() {
         <div className="container max-w-6xl">
           <h2 className="mb-8 font-heading text-4xl font-bold">Who&apos;s this guy again?</h2>
           <div className="justify-between">
-            <article className="prose max-w-5xl dark:prose-invert prose-headings:mb-3 prose-headings:mt-8 prose-headings:font-heading prose-headings:font-bold prose-headings:leading-tight hover:prose-a:text-accent-foreground prose-a:prose-headings:no-underline">
+            <article className="prose max-w-5xl dark:prose-invert prose-headings:mt-8 prose-headings:mb-3 prose-headings:font-heading prose-headings:leading-tight prose-headings:font-bold prose-a:hover:text-accent-foreground prose-headings:prose-a:no-underline">
               <Mdx code={aboutPage.body.code} />
               <Link
                 href="/now"

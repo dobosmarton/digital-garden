@@ -22,7 +22,7 @@ export type CTAProps = {
 };
 
 const formSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   company: z.string().optional(),
 });
 
@@ -38,7 +38,10 @@ const HONEYPOT_STYLE: React.CSSProperties = {
 
 function useNewsletterForm() {
   const { toast } = useToast();
-  const mountedAtRef = React.useRef<number>(Date.now());
+  const mountedAtRef = React.useRef(0);
+  React.useEffect(() => {
+    mountedAtRef.current = Date.now();
+  }, []);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -139,7 +142,7 @@ const NewsletterSubscribe = ({
 
       <svg
         viewBox="0 0 1024 1024"
-        className="absolute left-1/2 top-1/2 -z-10 h-[64rem] w-[64rem] -translate-x-1/2"
+        className="absolute top-1/2 left-1/2 -z-10 h-256 w-5xl -translate-x-1/2"
         aria-hidden="true"
       >
         <circle cx={512} cy={512} r={512} fill="url(#gradient)" fillOpacity="0.7" />
@@ -213,7 +216,7 @@ export const NewsletterSubscribeCompact = ({
   return (
     <aside
       className={cn(
-        "not-prose my-10 rounded-xl border bg-muted/40 p-6 ring-1 ring-border/60 backdrop-blur-sm",
+        "not-prose my-10 rounded-xl border bg-muted/40 p-6 ring-1 ring-border/60 backdrop-blur-xs",
         className
       )}
       {...props}

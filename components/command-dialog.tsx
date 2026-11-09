@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { DialogProps } from "@radix-ui/react-alert-dialog";
+import { defaultFilter } from "cmdk";
 import { File, Laptop, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { siGithub, siX } from "simple-icons";
@@ -20,9 +20,18 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 
+// cmdk 1.x's default filter is fuzzy (scattered letters match). Keep the stricter
+// behaviour of cmdk 0.2: an item must contain every search term, ranked by cmdk's scorer.
+const filterItems = (value: string, search: string, keywords?: string[]) => {
+  const haystack = [value, ...(keywords ?? [])].join(" ").toLowerCase();
+  const terms = search.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!terms.every((term) => haystack.includes(term))) return 0;
+  return Math.max(defaultFilter(value, search, keywords), 0.01);
+};
+
 export type CommandPost = { slug: string; title: string; tags?: string[] };
 
-type Props = DialogProps & { posts: CommandPost[] };
+type Props = React.ComponentProps<typeof Button> & { posts: CommandPost[] };
 
 export function CommandDialogComponent({ posts, ...props }: Props) {
   const router = useRouter();
@@ -65,11 +74,11 @@ export function CommandDialogComponent({ posts, ...props }: Props) {
         {...props}
       >
         <span className="inline-flex">Search...</span>
-        <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-6 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+        <kbd className="pointer-events-none absolute top-1.5 right-1.5 hidden h-6 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 select-none sm:flex">
           <span className="text-xs">⌘</span>K
         </kbd>
       </Button>
-      <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandDialog open={open} onOpenChange={setOpen} filter={filterItems}>
         <CommandInput placeholder="Type a command or search..." />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>

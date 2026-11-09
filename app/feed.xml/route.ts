@@ -3,6 +3,9 @@ import RSS from "rss";
 
 import siteMetadata, { BASE_URL, defaultAuthor } from "@/lib/metadata";
 
+// GET route handlers are dynamic by default since Next.js 15; the feed only changes on deploy.
+export const dynamic = "force-static";
+
 export async function GET(request: Request) {
   const feed = new RSS({
     title: siteMetadata.title.default,

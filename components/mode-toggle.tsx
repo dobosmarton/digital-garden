@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
-export function ModeToggle() {
-  const [mounted, setMounted] = useState(false);
-  const { setTheme, theme } = useTheme();
+const noopSubscribe = () => () => {};
 
-  // useEffect only runs on the client, so now we can safely show the UI
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+export function ModeToggle() {
+  // false during SSR and hydration, true on the client: the theme is only known client-side.
+  const mounted = useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false
+  );
+  const { setTheme, theme } = useTheme();
 
   if (!mounted) {
     return null;
@@ -24,7 +26,7 @@ export function ModeToggle() {
     >
       <span className="sr-only">Toggle dark/light mode</span>
       {theme !== "dark" ? (
-        <Moon className="h-4 w-4 duration-300 group-hover:rotate-[360deg]" />
+        <Moon className="h-4 w-4 duration-300 group-hover:rotate-360" />
       ) : (
         <Sun className="h-4 w-4 duration-300 group-hover:rotate-180" />
       )}

@@ -3,3 +3,21 @@ allowBuilds:
   esbuild: true
   protobufjs: true
   unrs-resolver: true
+
+# Security fixes for transitive dependencies, kept within each package's major version.
+# Most come from contentlayer2 (unmaintained, build-time only) and ESLint plugins.
+overrides:
+  "protobufjs@<7.6.5": ^7.6.5
+  "@grpc/grpc-js@>=1.14.0 <1.14.5": ^1.14.5
+  "@protobufjs/utf8@<1.1.1": ^1.1.1
+  "minimatch@<3.1.4": ^3.1.4
+  "brace-expansion@<1.1.21": ^1.1.21
+  "brace-expansion@>=4.0.0 <5.0.12": ^5.0.12
+  "picomatch@<2.3.2": ^2.3.2
+  "picomatch@>=4.0.0 <4.0.4": ^4.0.4
+  "yaml@>=2.0.0 <2.8.3": ^2.8.3
+  "js-yaml@<3.15.2": ^3.15.2
+  "browserslist@<4.28.7": ^4.28.7
+  "baseline-browser-mapping@>=2.0.0 <2.11.0": ^2.11.0
+  "source-map-js@>=1.0.0 <1.2.2": ^1.2.2
+  "postcss-selector-parser@<6.1.5": ^6.1.5

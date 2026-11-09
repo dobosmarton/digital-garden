@@ -35,7 +35,7 @@ export function MobileNav() {
           <div className="flex flex-col space-y-3">
             {navigationLinks?.map((item) =>
               item.content ? (
-                <div className="order-1 mt-3 flex flex-col space-y-3" key={item.title.trim()}>
+                <div className="order-1 flex flex-col space-y-3" key={item.title.trim()}>
                   <p className="font-bold">{item.title}</p>
                   {item.content.map((subItem) => (
                     <MobileLink key={subItem.href} href={subItem.href} onOpenChange={setOpen}>

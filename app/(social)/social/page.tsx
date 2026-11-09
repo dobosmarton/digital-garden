@@ -18,7 +18,7 @@ export default async function SocialPage() {
               <p>{defaultAuthor.handle}</p>
             </div>
           </div>
-          <h2 className="mb-2 mt-6 font-heading text-2xl font-bold">My socials</h2>
+          <h2 className="mt-6 mb-2 font-heading text-2xl font-bold">My socials</h2>
           <div className="mb-4 flex w-full max-w-2xl flex-col space-y-4">
             {defaultAuthor.socialProfiles.map((platform) => (
               <SocialButton key={platform.name} variant="outline" platform={platform} />

@@ -9,7 +9,7 @@ export default function NotFound() {
 
   return (
     <div className="mb-16 items-center justify-center text-center">
-      <span className="bg-gradient-to-b from-foreground to-transparent bg-clip-text text-[10rem] font-extrabold leading-none text-transparent">
+      <span className="bg-linear-to-b from-foreground to-transparent bg-clip-text text-[10rem] leading-none font-extrabold text-transparent">
         404
       </span>
       <h2 className="my-2 font-heading text-2xl font-bold">Something&apos;s missing</h2>

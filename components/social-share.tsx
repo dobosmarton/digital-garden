@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Mail } from "lucide-react";
-import { siFacebook, siLinkedin, siX, siYcombinator } from "simple-icons";
 
+import { brandIconPaths } from "@/lib/brand-icons";
 import { Button, ButtonProps } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -39,7 +39,7 @@ export const SocialShare = ({ url, text }: SocialShareProps) => {
               fill="currentColor"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <path d={siX.path}></path>
+              <path d={brandIconPaths.x}></path>
             </svg>
             X (formerly Twitter)
           </Link>
@@ -57,7 +57,7 @@ export const SocialShare = ({ url, text }: SocialShareProps) => {
               fill="currentColor"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <path d={siFacebook.path}></path>
+              <path d={brandIconPaths.facebook}></path>
             </svg>
             Facebook
           </Link>
@@ -75,7 +75,7 @@ export const SocialShare = ({ url, text }: SocialShareProps) => {
               fill="currentColor"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <path d={siLinkedin.path}></path>
+              <path d={brandIconPaths.linkedin}></path>
             </svg>
             LinkedIn
           </Link>
@@ -93,7 +93,7 @@ export const SocialShare = ({ url, text }: SocialShareProps) => {
               fill="currentColor"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <path d={siYcombinator.path}></path>
+              <path d={brandIconPaths.ycombinator}></path>
             </svg>
             Hacker News
           </Link>

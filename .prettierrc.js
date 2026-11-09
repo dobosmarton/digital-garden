@@ -1,6 +1,6 @@
 /** @typedef  {import("@ianvs/prettier-plugin-sort-imports").PluginConfig} SortImportsConfig*/
 /** @typedef  {import("prettier").Config} PrettierConfig*/
-/** @typedef  {{ tailwindConfig: string }} TailwindConfig*/
+/** @typedef  {{ tailwindStylesheet: string }} TailwindConfig*/
 
 /** @type { PrettierConfig | SortImportsConfig | TailwindConfig } */
 const config = {
@@ -12,6 +12,7 @@ const config = {
   trailingComma: "es5",
   tabWidth: 2,
   plugins: ["@ianvs/prettier-plugin-sort-imports", "prettier-plugin-tailwindcss"],
+  tailwindStylesheet: "./app/globals.css",
   importOrder: [
     "^(react/(.*)$)|^(react$)",
     "^(next/(.*)$)|^(next$)",

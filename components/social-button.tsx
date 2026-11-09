@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { SocialProfile } from "@/types";
-import type { SimpleIcon } from "simple-icons";
-import * as Icons from "simple-icons";
 
+import { brandIconPaths } from "@/lib/brand-icons";
 import { cn } from "@/lib/utils";
 import { Button, ButtonProps } from "@/components/ui/button";
 
@@ -13,16 +12,15 @@ interface SocialButtonProps extends ButtonProps {
 export function SocialButton({ platform, ...props }: SocialButtonProps) {
   const platformCamel = platform.name.toLocaleLowerCase().charAt(0).toUpperCase() + platform.name.slice(1);
 
-  const platformIconIdentifier = `si${platformCamel}`;
+  const iconPath = brandIconPaths[platform.name.toLowerCase()];
 
   const renderIcon = () => {
-    const icon = Icons[platformIconIdentifier as keyof typeof Icons] as SimpleIcon | undefined;
-    if (!icon) {
+    if (!iconPath) {
       return null;
     }
     return (
       <svg role="img" viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d={icon.path}></path>
+        <path d={iconPath}></path>
       </svg>
     );
   };

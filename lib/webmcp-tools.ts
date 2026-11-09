@@ -24,6 +24,23 @@ const MAX_SEARCH_LIMIT = 20;
 
 const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
+const currentAppearance = () => (document.documentElement.classList.contains("dark") ? "dark" : "light");
+
+// next-themes applies the theme class in an effect after the state update; wait for it.
+function waitForAppearance(expected: "light" | "dark", timeoutMs = 2_000): Promise<"light" | "dark"> {
+  return new Promise((resolve) => {
+    if (currentAppearance() === expected) return resolve(expected);
+    const finish = () => {
+      observer.disconnect();
+      clearTimeout(timeout);
+      resolve(currentAppearance());
+    };
+    const observer = new MutationObserver(() => currentAppearance() === expected && finish());
+    const timeout = setTimeout(finish, timeoutMs);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  });
+}
+
 const invalidInput = (error: z.ZodError) => ({
   error: `Invalid input: ${error.issues
     .map((issue) => `${issue.path.join(".") || "input"}: ${issue.message}`)
@@ -76,7 +93,7 @@ const getPostInput = z.object({
 
 const openPageInput = z.object({ path: z.string().trim().min(1) });
 const setThemeInput = z.object({ theme: z.enum(THEMES) });
-const subscribeInput = z.object({ email: z.string().trim().email() });
+const subscribeInput = z.object({ email: z.string().trim().pipe(z.email()) });
 
 export function createTools({ navigate, setTheme }: ToolContext): WebMCP.ModelContextTool[] {
   return [
@@ -197,10 +214,13 @@ export function createTools({ navigate, setTheme }: ToolContext): WebMCP.ModelCo
         const parsed = setThemeInput.safeParse(input);
         if (!parsed.success) return invalidInput(parsed.error);
 
-        setTheme(parsed.data.theme);
-        await nextFrame();
-        const appearance = document.documentElement.classList.contains("dark") ? "dark" : "light";
-        return { theme: parsed.data.theme, appearance };
+        const { theme } = parsed.data;
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const expected = theme === "system" ? (prefersDark ? "dark" : "light") : theme;
+
+        setTheme(theme);
+        const appearance = await waitForAppearance(expected);
+        return { theme, appearance };
       },
     },
     {

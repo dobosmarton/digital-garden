@@ -1,47 +1,48 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 
 const NAVIGATION_TIMEOUT_MS = 10_000;
+
+// The App Router commits the new URL together with the route's loading.tsx fallback
+// (marked `data-route-loading`) and streams the page and its <title> in afterwards.
+const isPageReady = (pathname: string) =>
+  window.location.pathname === pathname && document.title !== "" && !document.querySelector("[data-route-loading]");
+
+// Resolves once `pathname` has fully rendered, or after a timeout.
+function waitForPage(pathname: string): Promise<void> {
+  return new Promise((resolve) => {
+    if (isPageReady(pathname)) return resolve();
+
+    const finish = () => {
+      observer.disconnect();
+      clearTimeout(timeout);
+      resolve();
+    };
+    const observer = new MutationObserver(() => isPageReady(pathname) && finish());
+    const timeout = setTimeout(finish, NAVIGATION_TIMEOUT_MS);
+    observer.observe(document, { subtree: true, childList: true, characterData: true });
+  });
+}
 
 // Exposes the site to in-browser AI agents via WebMCP. Renders nothing. The tool
 // definitions are only downloaded in browsers that implement `document.modelContext`.
 export function WebMCP() {
   const router = useRouter();
-  const pathname = usePathname();
   const { setTheme } = useTheme();
-  const pendingNavigations = useRef(new Set<() => void>());
-
-  useEffect(() => {
-    pendingNavigations.current.forEach((resolve) => resolve());
-  }, [pathname]);
 
   useEffect(() => {
     const modelContext = document.modelContext;
     if (!modelContext) return;
 
     const controller = new AbortController();
-    const pending = pendingNavigations.current;
 
-    // Resolves once the App Router has rendered the new route (or after a timeout).
-    const navigate = (href: string) =>
-      new Promise<void>((resolve) => {
-        const samePage = new URL(href, window.location.href).pathname === window.location.pathname;
-        if (samePage) {
-          router.push(href);
-          return resolve();
-        }
-        const done = () => {
-          clearTimeout(timeout);
-          pending.delete(done);
-          resolve();
-        };
-        const timeout = setTimeout(done, NAVIGATION_TIMEOUT_MS);
-        pending.add(done);
-        router.push(href);
-      });
+    const navigate = (href: string) => {
+      router.push(href);
+      return waitForPage(new URL(href, window.location.href).pathname);
+    };
 
     import("@/lib/webmcp-tools")
       .then(({ createTools }) => {

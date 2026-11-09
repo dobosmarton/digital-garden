@@ -15,6 +15,9 @@ export const HEADING_LINK_ANCHOR = `anchor-heading-link`;
 export default makeSource({
   contentDirPath: "./content",
   documentTypes: [Post, Page],
+  // The check expects `compilerOptions.baseUrl`, which TypeScript 6 deprecates; the
+  // `contentlayer/generated` path alias resolves without it.
+  disableImportAliasWarning: true,
   mdx: {
     esbuildOptions(options) {
       options.target = "esnext";

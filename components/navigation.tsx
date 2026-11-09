@@ -56,7 +56,7 @@ export function Navigation({ commandPosts }: { commandPosts: CommandPost[] }) {
       )}
       <header
         className={cn(
-          "fixed inset-x-0 -bottom-32 z-20 mx-auto mb-4 px-4 transition-all duration-1000 animate-out sm:top-0 sm:h-16 sm:px-0 sm:transition-none",
+          "fixed inset-x-0 -bottom-32 z-20 mx-auto mb-4 animate-out px-4 transition-all duration-1000 sm:top-0 sm:h-16 sm:px-0 sm:transition-none",
           visible && "bottom-0 animate-in",
           siteMetadata.activeAnnouncement && "sm:top-28 md:top-20 lg:top-12"
         )}
@@ -68,7 +68,7 @@ export function Navigation({ commandPosts }: { commandPosts: CommandPost[] }) {
             </Link>
           </div>
         )}
-        <div className="flex items-center gap-2 rounded-full border-b border-foreground/25 bg-background/95 px-3 py-2 shadow-md supports-[backdrop-filter]:bg-background/60 supports-[backdrop-filter]:bg-clip-padding supports-[backdrop-filter]:backdrop-blur sm:justify-between sm:rounded-none sm:px-3">
+        <div className="flex items-center gap-2 rounded-full border-b border-foreground/25 bg-background/95 px-3 py-2 shadow-md supports-backdrop-filter:bg-background/60 supports-backdrop-filter:bg-clip-padding supports-backdrop-filter:backdrop-blur-sm sm:justify-between sm:rounded-none sm:px-3">
           <div className="container mx-auto flex max-w-6xl">
             <div className="flex items-center justify-start">
               <div className="group aspect-square h-auto w-10 overflow-hidden rounded-full border border-black">

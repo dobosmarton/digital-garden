@@ -42,6 +42,8 @@ interface MdxProps {
 
 export function Mdx({ code }: MdxProps) {
   const Component = useMDXComponent(code);
+  // useMDXComponent memoizes the component per `code`, so it is stable across renders.
   // TODO: Figure out how to type this
+  // eslint-disable-next-line react-hooks/static-components
   return <Component components={components as any} />;
 }

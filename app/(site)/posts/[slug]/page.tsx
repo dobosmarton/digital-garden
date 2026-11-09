@@ -20,13 +20,13 @@ import { RelatedPosts } from "@/components/related-posts";
 import { SocialShare } from "@/components/social-share";
 import { TableOfContents } from "@/components/table-of-contents";
 
+type Params = { slug: string };
+
 interface PostProps {
-  params: {
-    slug: string;
-  };
+  params: Promise<Params>;
 }
 
-async function getPostFromParams(params: PostProps["params"]): Promise<any> {
+async function getPostFromParams(params: Params): Promise<any> {
   const post = allPosts.find((post) => post.slug === params.slug);
 
   if (!post) {
@@ -53,7 +53,8 @@ async function getPostFromParams(params: PostProps["params"]): Promise<any> {
   return post;
 }
 
-export async function generateMetadata({ params }: PostProps): Promise<Metadata> {
+export async function generateMetadata(props: PostProps): Promise<Metadata> {
+  const params = await props.params;
   const post = await getPostFromParams(params);
 
   if (!post) {
@@ -97,13 +98,14 @@ export async function generateMetadata({ params }: PostProps): Promise<Metadata>
   };
 }
 
-export async function generateStaticParams(): Promise<PostProps["params"][]> {
+export async function generateStaticParams(): Promise<Params[]> {
   return allPosts.map((post) => ({
     slug: post.slug,
   }));
 }
 
-export default async function PostPage({ params }: PostProps) {
+export default async function PostPage(props: PostProps) {
+  const params = await props.params;
   const post = await getPostFromParams(params);
 
   if (!post || (process.env.NODE_ENV === "development" && post.status !== "published")) {
@@ -174,7 +176,7 @@ export default async function PostPage({ params }: PostProps) {
         </nav>
         <div className="flex flex-col py-6 lg:flex-row">
           <div className="lg:hidden">
-            <div className="mb-4 mt-1 text-sm leading-snug text-muted-foreground">
+            <div className="mt-1 mb-4 text-sm leading-snug text-muted-foreground">
               <p className="mb-2">{`${post.readTimeMinutes} mins read`}</p>
               <time>Originally published: {format(parseISO(post.publishedDate), "LLLL d, yyyy")} </time>
               <br />
@@ -191,12 +193,12 @@ export default async function PostPage({ params }: PostProps) {
               </AccordionItem>
             </Accordion>
           </div>
-          <article className="prose max-w-7xl pt-4 dark:prose-invert hover:prose-a:text-accent-foreground prose-a:prose-headings:mb-3 prose-a:prose-headings:mt-8 prose-a:prose-headings:font-heading prose-a:prose-headings:font-bold prose-a:prose-headings:leading-tight prose-a:prose-headings:no-underline lg:mr-auto lg:max-w-2xl lg:pt-0">
+          <article className="prose max-w-7xl pt-4 lg:mr-auto lg:max-w-2xl lg:pt-0 dark:prose-invert prose-a:hover:text-accent-foreground prose-headings:prose-a:mt-8 prose-headings:prose-a:mb-3 prose-headings:prose-a:font-heading prose-headings:prose-a:leading-tight prose-headings:prose-a:font-bold prose-headings:prose-a:no-underline">
             <h1 className="mb-4 font-heading">{post.title}</h1>
             {post.description && (
-              <p className="mb-2 mt-0 text-xl text-slate-700 dark:text-slate-200">{post.description}</p>
+              <p className="mt-0 mb-2 text-xl text-slate-700 dark:text-slate-200">{post.description}</p>
             )}
-            <hr className="my-4" />
+            <hr className="my-4!" />
             {post?.series && (
               <div className="not-prose">
                 <PostSeriesBox data={post.series} />
@@ -208,10 +210,10 @@ export default async function PostPage({ params }: PostProps) {
                 <PostReferencesBox tools={post.tools} />
               </div>
             )}
-            <hr className="my-4" />
+            <hr className="my-4!" />
             <div className="flex flex-row items-center justify-between">
               {post.tags && (
-                <ul className="m-0 list-none space-x-2 p-0 text-sm text-muted-foreground">
+                <ul className="m-0! list-none space-x-2 p-0 text-sm text-muted-foreground">
                   {post.tags.map((tag: string) => (
                     <li className="inline-block p-0" key={tag}>
                       <Link href={`/tags/${tag}`} className="inline-block transition hover:text-muted-foreground/70">
@@ -237,7 +239,7 @@ export default async function PostPage({ params }: PostProps) {
               </CardContent>
               <Separator />
               <CardFooter>
-                <div className="mb-4 mt-1 text-sm leading-snug text-muted-foreground">
+                <div className="mt-1 mb-4 text-sm leading-snug text-muted-foreground">
                   <p className="mb-2">{`${post.readTimeMinutes} mins read`}</p>
                   <time>Originally published: {format(parseISO(post.publishedDate), "LLLL d, yyyy")} </time>
                   <br />

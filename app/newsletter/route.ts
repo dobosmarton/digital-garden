@@ -11,7 +11,7 @@ const MAX_BODY_BYTES = 1024;
 const MIN_SUBMIT_MS = 2_000;
 
 const bodySchema = z.object({
-  email: z.string().trim().toLowerCase().email(),
+  email: z.string().trim().toLowerCase().pipe(z.email()),
   company: z.string().optional(),
   elapsedMs: z.number().nonnegative().optional(),
 });

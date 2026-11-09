@@ -19,14 +19,14 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <>
       <a
-        className="absolute left-0 top-0 z-[9999] m-3 block -translate-y-96 overflow-hidden bg-white p-3 text-2xl text-black transition focus:translate-y-0"
+        className="absolute top-0 left-0 z-9999 m-3 block -translate-y-96 overflow-hidden bg-white p-3 text-2xl text-black transition focus:translate-y-0"
         href="#main-content"
         aria-label="Skip to Content"
       >
         Skip to Content
       </a>
       <Navigation commandPosts={commandPosts} />
-      <div className="order-last mt-[calc(theme(spacing.16)-theme(spacing.3))]"></div>
+      <div className="order-last mt-[calc(--spacing(16)-(--spacing(3)))]"></div>
       <main className={cn("mt-20", siteMetadata.activeAnnouncement && "mt-32 pt-28 md:pt-0")} id="main-content">
         {children}
       </main>
@@ -36,7 +36,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         aria-hidden="true"
       >
         <div
-          className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-amber-200 to-[#9089fc] opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
+          className="relative left-[calc(50%-11rem)] aspect-1155/678 w-144.5 -translate-x-1/2 rotate-30 bg-linear-to-tr from-amber-200 to-[#9089fc] opacity-20 sm:left-[calc(50%-30rem)] sm:w-288.75"
           style={{
             clipPath:
               "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",

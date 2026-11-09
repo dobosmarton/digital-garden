@@ -15,19 +15,23 @@ const lines: Line[] = [
 
 const finalRender = lines.map((l) => l.text);
 
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+function subscribeReducedMotion(onChange: () => void) {
+  const mq = window.matchMedia(REDUCED_MOTION_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
 export function HeroTerminal() {
-  const [reducedMotion, setReducedMotion] = React.useState(false);
+  const reducedMotion = React.useSyncExternalStore(
+    subscribeReducedMotion,
+    () => window.matchMedia(REDUCED_MOTION_QUERY).matches,
+    () => false
+  );
   const [rendered, setRendered] = React.useState<string[]>([""]);
   const [lineIdx, setLineIdx] = React.useState(0);
   const [charIdx, setCharIdx] = React.useState(0);
-
-  React.useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReducedMotion(mq.matches);
-    const onChange = () => setReducedMotion(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
 
   React.useEffect(() => {
     if (reducedMotion) return;
@@ -69,7 +73,7 @@ export function HeroTerminal() {
   return (
     <div
       aria-hidden
-      className="w-full select-none overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 font-mono text-sm shadow-2xl"
+      className="w-full overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 font-mono text-sm shadow-2xl select-none"
     >
       <div className="flex items-center gap-1.5 border-b border-zinc-800 bg-zinc-900/80 px-3 py-2">
         <span className="h-3 w-3 rounded-full bg-red-500/80" />

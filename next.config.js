@@ -1,18 +1,18 @@
 // @ts-check
 
-const { withContentlayer } = require("next-contentlayer2");
+// Contentlayer runs as its own process (see the `dev` and `build` scripts) rather than
+// through next-contentlayer2's `withContentlayer`, whose webpack plugin is incompatible
+// with Turbopack, the default bundler since Next.js 16.
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  experimental: {
-    serverComponentsExternalPackages: [
-      "contentlayer2",
-      "@contentlayer2/client",
-      "@contentlayer2/core",
-      "@contentlayer2/source-files",
-    ],
-  },
+  serverExternalPackages: [
+    "contentlayer2",
+    "@contentlayer2/client",
+    "@contentlayer2/core",
+    "@contentlayer2/source-files",
+  ],
   rewrites: async () => [
     {
       source: "/posts/test",
@@ -36,4 +36,4 @@ const nextConfig = {
   },
 };
 
-module.exports = withContentlayer(nextConfig);
+module.exports = nextConfig;
