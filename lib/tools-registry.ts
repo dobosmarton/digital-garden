@@ -51,6 +51,31 @@ export const toolsRegistry: Record<string, Tool> = {
     url: "https://github.com/obss/sahi",
     description: "Sliced inference for detecting objects in large images",
   },
+  runpod: {
+    name: "RunPod",
+    url: "https://www.runpod.io",
+    description: "On-demand cloud GPU pods",
+  },
+  "x-anylabeling": {
+    name: "X-AnyLabeling",
+    url: "https://github.com/CVHub520/X-AnyLabeling",
+    description: "Image annotation tool with model-assisted labelling",
+  },
+  cvat: {
+    name: "CVAT",
+    url: "https://www.cvat.ai",
+    description: "Computer Vision Annotation Tool",
+  },
+  "aoe2-entity-detector": {
+    name: "Hugging Face Hub (aoe2-entity-detector)",
+    url: "https://huggingface.co/martondobos/aoe2-entity-detector",
+    description: "The released AoE2 detection model",
+  },
+  "burdorf-synthetic-data": {
+    name: "Burdorf et al., 2022",
+    url: "https://arxiv.org/html/2202.00632v1",
+    description: "Mixing vs pretraining with synthetic data for object detection",
+  },
 
   // Document Q&A
   uploadthing: {

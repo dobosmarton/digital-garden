@@ -134,6 +134,12 @@
     --destructive-foreground: 210 40% 98%;
     --ring: 215 20.2% 65.1%;
     --radius: 0.3rem;
+
+    /* Chart series (validated for CVD separation on the light surface) */
+    --chart-1: #2a78d6;
+    --chart-2: #eb6834;
+    --chart-neutral: #9aa0a6;
+    --chart-link: #cbd5e1;
   }
 
   .dark {
@@ -156,6 +162,12 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 85.7% 97.3%;
     --ring: 217.2 32.6% 17.5%;
+
+    /* Chart series, re-stepped and validated against the dark surface */
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
+    --chart-neutral: #7d848b;
+    --chart-link: #334155;
   }
 }
 

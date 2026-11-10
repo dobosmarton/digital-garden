@@ -12,6 +12,8 @@ import * as ReactDOM from "react-dom";
 import type { TweetProps } from "react-tweet";
 import { Tweet } from "react-tweet";
 
+import { DotPlot } from "./dot-plot";
+import { Figure } from "./figure";
 import { NewsletterCTA } from "./newsletter-cta";
 import { YouTubeVideo } from "./youtube-video";
 
@@ -23,6 +25,8 @@ const components = {
     </div>
   ),
   Image: NextImage,
+  Figure,
+  DotPlot,
   NewsletterCTA,
   YouTubeVideo,
   Tweet: (props: TweetProps) => {
