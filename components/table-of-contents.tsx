@@ -38,20 +38,22 @@ export function TableOfContents({ chapters }: TocProps) {
   }, [chapters]);
 
   return (
-    <nav className="flex items-center self-start" aria-label="Table of Contents">
-      <ol className="list-none space-y-3">
+    <nav aria-label="Table of contents">
+      <ol className="list-none space-y-0.5 border-l border-border text-sm">
         {chapters.map((heading: PostHeading) => (
-          <li
-            key={heading.slug}
-            className={cn(
-              "list-none text-sm font-bold transition-colors duration-200 ease-in-out hover:text-accent-foreground",
-              heading.heading === 3 && "ml-6 font-normal",
-              heading.heading === 4 && "ml-8 font-normal",
-              heading.heading === 5 && "ml-10 font-normal",
-              activeSlug === heading.slug && "text-accent-foreground"
-            )}
-          >
-            <Link href={`#${heading.slug}`}>{heading.text}</Link>
+          <li key={heading.slug} className="list-none">
+            <Link
+              href={`#${heading.slug}`}
+              aria-current={activeSlug === heading.slug ? "location" : undefined}
+              className={cn(
+                "-ml-px block border-l-2 border-transparent py-1 pr-2 pl-3 leading-snug text-muted-foreground transition-colors hover:text-foreground",
+                heading.heading === 3 && "pl-6",
+                heading.heading >= 4 && "pl-9",
+                activeSlug === heading.slug && "border-slate-900 font-medium text-foreground dark:border-slate-100"
+              )}
+            >
+              {heading.text.replace(/`/g, "")}
+            </Link>
           </li>
         ))}
       </ol>

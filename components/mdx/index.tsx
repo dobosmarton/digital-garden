@@ -16,6 +16,12 @@ import { NewsletterCTA } from "./newsletter-cta";
 import { YouTubeVideo } from "./youtube-video";
 
 const components = {
+  // Wide tables scroll inside their own box instead of widening the page on phones.
+  table: (props: React.ComponentProps<"table">) => (
+    <div className="table-scroll">
+      <table {...props} />
+    </div>
+  ),
   Image: NextImage,
   NewsletterCTA,
   YouTubeVideo,

@@ -4,14 +4,11 @@ import { notFound } from "next/navigation";
 import { PostSeries, SeriesItem } from "@/types";
 import { allPosts } from "contentlayer/generated";
 import { format, parseISO } from "date-fns";
-import { Home } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { BASE_URL, defaultAuthor } from "@/lib/metadata";
 import { blogPostingJsonLd, breadcrumbJsonLd, postUrl, twitterHandle } from "@/lib/seo";
-import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Mdx } from "@/components/mdx";
 import NewsletterSubscribe from "@/components/newsletter-subscribe";
 import { PostReferencesBox } from "@/components/post-references-box";
@@ -129,128 +126,94 @@ export default async function PostPage(props: PostProps) {
     { name: post.title, url: postUrl(post.slug) },
   ]);
 
+  const published = format(parseISO(post.publishedDate), "LLLL d, yyyy");
+  const updated = post.lastUpdatedDate && format(parseISO(post.lastUpdatedDate), "LLLL d, yyyy");
+  const hasToc = post.headings.length > 1;
+
   return (
     <div className="pb-10">
-      <div className="container w-full lg:max-w-6xl">
-        <nav aria-label="Breadcrumb">
-          <ol role="list" className="hidden items-center gap-1 text-sm text-muted-foreground md:flex md:flex-row">
-            <li>
-              <Link href="/" className="block transition hover:text-muted-foreground/70" aria-label="Go to Home">
-                <span className="sr-only"> Home </span>
-                <Home size={14} />
-              </Link>
-            </li>
-
-            <li className="rtl:rotate-180">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </li>
-
-            <li>
-              <Link href="/posts" className="block transition hover:text-muted-foreground/70">
-                Blog
-              </Link>
-            </li>
-
-            <li className="rtl:rotate-180">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </li>
-
-            <li>
-              <Link href="#" className="block transition hover:text-muted-foreground/70">
-                {post.title}
-              </Link>
-            </li>
-          </ol>
-        </nav>
-        <div className="flex flex-col py-6 lg:flex-row">
-          <div className="lg:hidden">
-            <div className="mt-1 mb-4 text-sm leading-snug text-muted-foreground">
-              <p className="mb-2">{`${post.readTimeMinutes} mins read`}</p>
-              <time>Originally published: {format(parseISO(post.publishedDate), "LLLL d, yyyy")} </time>
-              <br />
-              {post.lastUpdatedDate && (
-                <time> Last updated: {format(parseISO(post.lastUpdatedDate), "LLLL d, yyyy")}</time>
-              )}
-            </div>
-            <Accordion type="single" collapsible>
-              <AccordionItem value="table-of-contents">
-                <AccordionTrigger>Table of Contents</AccordionTrigger>
-                <AccordionContent>
-                  <TableOfContents chapters={post.headings} />
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </div>
-          <article className="prose max-w-7xl pt-4 lg:mr-auto lg:max-w-2xl lg:pt-0 dark:prose-invert prose-a:hover:text-accent-foreground prose-headings:prose-a:mt-8 prose-headings:prose-a:mb-3 prose-headings:prose-a:font-heading prose-headings:prose-a:leading-tight prose-headings:prose-a:font-bold prose-headings:prose-a:no-underline">
-            <h1 className="mb-4 font-heading">{post.title}</h1>
+      <div className="mx-auto grid w-full max-w-[60rem] grid-cols-1 px-5 pt-6 sm:px-8 xl:grid-cols-[minmax(0,40rem)_13rem] xl:justify-between xl:gap-x-16">
+        <article>
+          <header className="not-prose mb-10">
+            <Link
+              href="/posts"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft size={14} aria-hidden="true" />
+              All posts
+            </Link>
+            <h1 className="mt-6 font-heading text-[2.1rem] leading-[1.12] font-bold tracking-tight text-balance text-slate-950 sm:text-[2.6rem] dark:text-slate-50">
+              {post.title}
+            </h1>
             {post.description && (
-              <p className="mt-0 mb-2 text-xl text-slate-700 dark:text-slate-200">{post.description}</p>
+              <p className="mt-5 font-serif text-xl leading-relaxed text-pretty text-slate-600 sm:text-[1.3rem] dark:text-slate-300">
+                {post.description}
+              </p>
             )}
-            <hr className="my-4!" />
-            {post?.series && (
-              <div className="not-prose">
-                <PostSeriesBox data={post.series} />
-              </div>
-            )}
-            <Mdx code={post.body.code} />
-            {post.tools && post.tools.length > 0 && (
-              <div className="not-prose">
-                <PostReferencesBox tools={post.tools} />
-              </div>
-            )}
-            <hr className="my-4!" />
-            <div className="flex flex-row items-center justify-between">
-              {post.tags && (
-                <ul className="m-0! list-none space-x-2 p-0 text-sm text-muted-foreground">
-                  {post.tags.map((tag: string) => (
-                    <li className="inline-block p-0" key={tag}>
-                      <Link href={`/tags/${tag}`} className="inline-block transition hover:text-muted-foreground/70">
-                        {tag}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+            <p className="mt-6 flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground">
+              <time dateTime={post.publishedDate}>{published}</time>
+              {updated && (
+                <span>
+                  Updated <time dateTime={post.lastUpdatedDate}>{updated}</time>
+                </span>
               )}
-              <SocialShare
-                text={`${post.title} via ${defaultAuthor.handle}`}
-                url={`${BASE_URL}/${post._raw.flattenedPath}`}
-              />
+              <span>{post.readTimeMinutes} min read</span>
+            </p>
+          </header>
+          {hasToc && (
+            <div className="not-prose mb-10 xl:hidden">
+              <Accordion type="single" collapsible className="border-y">
+                <AccordionItem value="table-of-contents" className="border-b-0">
+                  <AccordionTrigger className="py-3 text-sm hover:no-underline">Contents</AccordionTrigger>
+                  <AccordionContent>
+                    <TableOfContents chapters={post.headings} />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </div>
-          </article>
-          <aside className="hidden lg:block">
-            <Card className={cn("sticky top-28 mb-4 ml-4")}>
-              <CardHeader>
-                <CardTitle>Table of Contents</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4">
-                <TableOfContents chapters={post.headings} />
-              </CardContent>
-              <Separator />
-              <CardFooter>
-                <div className="mt-1 mb-4 text-sm leading-snug text-muted-foreground">
-                  <p className="mb-2">{`${post.readTimeMinutes} mins read`}</p>
-                  <time>Originally published: {format(parseISO(post.publishedDate), "LLLL d, yyyy")} </time>
-                  <br />
-                  {post.lastUpdatedDate && (
-                    <time> Last updated: {format(parseISO(post.lastUpdatedDate), "LLLL d, yyyy")}</time>
-                  )}
-                </div>
-              </CardFooter>
-            </Card>
+          )}
+          {post?.series && (
+            <div className="not-prose">
+              <PostSeriesBox data={post.series} />
+            </div>
+          )}
+          <div className="article prose dark:prose-invert">
+            <Mdx code={post.body.code} />
+          </div>
+          {post.tools && post.tools.length > 0 && (
+            <div className="not-prose">
+              <PostReferencesBox tools={post.tools} />
+            </div>
+          )}
+          <footer className="not-prose mt-12 flex flex-wrap items-center justify-between gap-4 border-t pt-6">
+            {post.tags && (
+              <ul className="flex flex-wrap gap-2 text-sm">
+                {post.tags.map((tag: string) => (
+                  <li key={tag}>
+                    <Link
+                      href={`/tags/${tag}`}
+                      className="inline-block rounded-full bg-muted px-3 py-1 text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {tag}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <SocialShare
+              text={`${post.title} via ${defaultAuthor.handle}`}
+              url={`${BASE_URL}/${post._raw.flattenedPath}`}
+            />
+          </footer>
+        </article>
+        {hasToc && (
+          <aside className="hidden pt-[3.4rem] xl:block">
+            <div className="sticky top-28 max-h-[calc(100vh-8rem)] overflow-y-auto">
+              <p className="mb-3 text-sm font-medium text-foreground">On this page</p>
+              <TableOfContents chapters={post.headings} />
+            </div>
           </aside>
-        </div>
+        )}
       </div>
       <NewsletterSubscribe
         title="Liked this post?"
