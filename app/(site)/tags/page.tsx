@@ -36,12 +36,12 @@ export default function TagsPage() {
       <div className="max-w-3xl">
         <PageHeader label="Topics" title="All tags" aside={`${sorted.length} tags`} />
         {/* A grid of hairline cells: the list draws the top and left edges, each cell its right and bottom. */}
-        <ul className="grid grid-cols-2 overflow-hidden rounded-lg border-t border-l border-foreground/10 sm:grid-cols-3">
+        <ul className="grid grid-cols-2 overflow-hidden rounded-lg border-t border-l border-foreground/10 bg-card sm:grid-cols-3">
           {sorted.map(([tag, count]) => (
             <li key={tag} className="border-r border-b border-foreground/10">
               <Link
                 href={`/tags/${tag}`}
-                className="group flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-card"
+                className="group flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-accent-foreground/[0.05]"
               >
                 <span className="truncate transition-colors group-hover:text-accent-foreground">{tag}</span>
                 <span className="font-mono text-[11px] text-muted-foreground tabular-nums">

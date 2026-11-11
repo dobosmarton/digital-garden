@@ -16,9 +16,16 @@ import { createLogStore, type LogEntry, type LogTag } from "@/components/hero-ag
 // Selectors resolve inside the element marked `data-hero-root`.
 const TARGETS: DetectionTarget[] = [
   { label: "headline", selector: "[data-detect=headline]", confidence: 0.97 },
-  { label: "subtitle", selector: "[data-detect=subtitle]", confidence: 0.84, labelBelow: true },
-  { label: "email_field", selector: "input[type=email]", confidence: 0.91, resting: false, labelBelow: true },
-  { label: "subscribe_cta", selector: "button[type=submit]", confidence: 0.88, resting: false, labelBelow: true },
+  // Resting marks on the headline only: the subtitle's would stack against the headline's.
+  { label: "subtitle", selector: "[data-detect=subtitle]", confidence: 0.84, resting: false, labelPlacement: "below" },
+  { label: "email_field", selector: "input[type=email]", confidence: 0.91, resting: false, labelPlacement: "inside" },
+  {
+    label: "subscribe_cta",
+    selector: "button[type=submit]",
+    confidence: 0.88,
+    resting: false,
+    labelPlacement: "below",
+  },
   // Already framed by their own borders, so no resting frame on top.
   { label: "agent_log", selector: "[data-detect=agent-log]", confidence: 0.99, resting: false },
   {
@@ -26,7 +33,7 @@ const TARGETS: DetectionTarget[] = [
     selector: "[data-detect=recommended-post]",
     confidence: 0.93,
     resting: false,
-    labelBelow: true,
+    labelPlacement: "below",
   },
 ];
 

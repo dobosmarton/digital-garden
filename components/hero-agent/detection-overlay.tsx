@@ -10,10 +10,10 @@ export type DetectionTarget = {
   label: string;
   selector: string;
   confidence: number;
-  // false: no frame at rest, only the reticle on hover. For calls to action that need to stay clean.
+  // false: no corner marks at rest, only the reticle on hover. For calls to action that need to stay clean.
   resting?: boolean;
-  // Put the label under the box when the space above it holds text the label would cover.
-  labelBelow?: boolean;
+  // Where the reticle label goes when the space above the box holds text it would cover.
+  labelPlacement?: LabelPlacement;
 };
 
 export type DetectionEvent =
@@ -32,7 +32,7 @@ type Candidate = {
   label: string;
   name?: string;
   confidence: number;
-  labelBelow?: boolean;
+  labelPlacement: LabelPlacement;
 };
 
 type DetectionOverlayProps = {
@@ -74,8 +74,19 @@ function place(el: HTMLElement, rect: Rect) {
   el.style.height = `${rect.h}px`;
 }
 
-function placeLabel(label: HTMLElement, below: boolean) {
-  label.style.top = below ? `calc(100% + ${LABEL_GAP}px)` : `-${LABEL_HEIGHT + LABEL_GAP}px`;
+// Above or below the frame for hero targets; inside the top-right corner for list items,
+// where a label outside would run into the neighbouring post or the section heading.
+export type LabelPlacement = "above" | "below" | "inside";
+
+function placeLabel(label: HTMLElement, placement: LabelPlacement) {
+  label.style.top =
+    placement === "below"
+      ? `calc(100% + ${LABEL_GAP}px)`
+      : placement === "inside"
+        ? `${LABEL_GAP}px`
+        : `-${LABEL_HEIGHT + LABEL_GAP}px`;
+  label.style.left = placement === "inside" ? "auto" : "0";
+  label.style.right = placement === "inside" ? `${LABEL_GAP + 4}px` : "auto";
 }
 
 function distanceToRect(px: number, py: number, rect: Rect) {
@@ -175,7 +186,13 @@ export function DetectionOverlay({
         const el = elements[i];
         const rect = el && toRect(el);
         return el && rect
-          ? { el, rect, label: target.label, confidence: target.confidence, labelBelow: target.labelBelow }
+          ? {
+              el,
+              rect,
+              label: target.label,
+              confidence: target.confidence,
+              labelPlacement: target.labelPlacement ?? "above",
+            }
           : null;
       });
 
@@ -206,6 +223,7 @@ export function DetectionOverlay({
           label: item.getAttribute("data-detect-item") ?? "object",
           name: item.getAttribute("data-detect-name") ?? undefined,
           confidence: ITEM_CONFIDENCE,
+          labelPlacement: "inside",
         };
       } else if (pointerLive) {
         // Nearest box within reach wins; when the pointer is inside several, the smallest does.
@@ -248,7 +266,7 @@ export function DetectionOverlay({
         confidenceAt = 0;
         if (next) {
           reticleName.textContent = displayName(next.label);
-          placeLabel(reticleLabel, next.labelBelow ?? false);
+          placeLabel(reticleLabel, next.labelPlacement);
         }
       }
       lock = next;
@@ -355,7 +373,7 @@ export function DetectionOverlay({
             ref={(el) => {
               boxRefs.current[i] = el;
             }}
-            className="absolute top-0 left-0 rounded-md border border-foreground/[0.07] text-foreground/25 opacity-0 transition-opacity duration-700"
+            className="absolute top-0 left-0 text-foreground/25 opacity-0 transition-opacity duration-700"
           >
             <Corners />
           </div>

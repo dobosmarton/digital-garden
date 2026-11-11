@@ -424,6 +424,205 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before {
 }
 
 /*
+  Site backdrop (components/site-background.tsx). A fixed layer behind all content:
+  - a hairline grid in 64px cells (the search modal's grid) fading out down the page
+  - a spotlight that drifts across it and lights the grid lines in the accent color; it is
+    a small moving element whose background is shifted back by the same amount, so its
+    lines stay on the page grid and only that element repaints
+  - two soft glows, accent blue and violet, floating slowly
+  - "+" ticks that blink on grid intersections
+*/
+@property --spot-x {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 10vw;
+}
+
+@property --spot-y {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 0vh;
+}
+
+.site-bg {
+  --site-bg-cell: 64px;
+  --site-bg-line: hsl(var(--foreground) / 0.045);
+  --site-bg-lit: hsl(var(--accent-foreground) / 0.24);
+  --site-bg-glow: 0.16;
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.dark .site-bg {
+  --site-bg-line: hsl(var(--foreground) / 0.05);
+  --site-bg-lit: hsl(var(--accent-foreground) / 0.32);
+  --site-bg-glow: 0.2;
+}
+
+/* Grid, spotlight and ticks; on reading pages the band holding the article and its table of
+   contents is masked out so no line runs under the text. The post layout is 60rem wide. */
+.site-bg-lines {
+  position: absolute;
+  inset: 0;
+}
+
+.site-bg-reading .site-bg-lines {
+  mask-image: linear-gradient(
+    to right,
+    black calc(50% - 36rem),
+    transparent calc(50% - 31rem),
+    transparent calc(50% + 31rem),
+    black calc(50% + 36rem)
+  );
+}
+
+.site-bg-grid,
+.site-bg-spot {
+  position: absolute;
+  background-size: var(--site-bg-cell) var(--site-bg-cell);
+}
+
+.site-bg-grid {
+  inset: 0;
+  background-image:
+    linear-gradient(to right, var(--site-bg-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--site-bg-line) 1px, transparent 1px);
+  mask-image: linear-gradient(to bottom, black 10%, transparent 80%);
+}
+
+.site-bg-spot {
+  top: 0;
+  left: 0;
+  width: 36rem;
+  height: 36rem;
+  background-image:
+    linear-gradient(to right, var(--site-bg-lit) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--site-bg-lit) 1px, transparent 1px);
+  background-position: calc(var(--spot-x) * -1) calc(var(--spot-y) * -1);
+  transform: translate(var(--spot-x), var(--spot-y));
+  mask-image: radial-gradient(closest-side, black 15%, transparent);
+  animation: site-bg-sweep 34s ease-in-out infinite alternate;
+}
+
+@keyframes site-bg-sweep {
+  0% {
+    --spot-x: 4vw;
+    --spot-y: -4vh;
+  }
+  30% {
+    --spot-x: 58vw;
+    --spot-y: 2vh;
+  }
+  60% {
+    --spot-x: 34vw;
+    --spot-y: 30vh;
+  }
+  100% {
+    --spot-x: 70vw;
+    --spot-y: 16vh;
+  }
+}
+
+.site-bg-glow {
+  position: absolute;
+  width: 70vmax;
+  height: 70vmax;
+  border-radius: 9999px;
+  opacity: var(--site-bg-glow);
+}
+
+.site-bg-glow-a {
+  top: -38vmax;
+  left: -18vmax;
+  background: radial-gradient(closest-side, hsl(var(--accent-foreground)), transparent);
+  animation: site-bg-float-a 40s ease-in-out infinite alternate;
+}
+
+.site-bg-glow-b {
+  top: -34vmax;
+  right: -24vmax;
+  background: radial-gradient(closest-side, hsl(262 83% 72%), transparent);
+  animation: site-bg-float-b 52s ease-in-out infinite alternate;
+}
+
+@keyframes site-bg-float-a {
+  to {
+    transform: translate(22vmax, 8vmax) scale(1.1);
+  }
+}
+
+@keyframes site-bg-float-b {
+  to {
+    transform: translate(-18vmax, 12vmax) scale(0.92);
+  }
+}
+
+.site-bg-tick {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  color: hsl(var(--accent-foreground));
+  animation: site-bg-tick 2.6s ease-in-out both;
+}
+
+@keyframes site-bg-tick {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  20%,
+  70% {
+    opacity: 0.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-bg * {
+    animation: none;
+  }
+}
+
+/*
+  Reading progress along the bottom of the condensed header on posts, driven by the page
+  scroll itself (no JavaScript). Hidden where scroll-driven animations are unsupported.
+*/
+.header-progress {
+  display: none;
+}
+
+@supports (animation-timeline: scroll()) {
+  @media (width >= 40rem) {
+    .header-progress {
+      position: absolute;
+      right: 1rem;
+      bottom: -1px;
+      left: 1rem;
+      display: block;
+      height: 1px;
+      background: hsl(var(--accent-foreground));
+      transform-origin: left;
+      pointer-events: none;
+      animation: header-progress linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+}
+
+@keyframes header-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/*
   Series navigation (components/series-nav.tsx): the box holds still while the page
   crossfades around it, and the current-part marker slides from the old part to the new one.
 */

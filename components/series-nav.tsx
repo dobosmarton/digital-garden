@@ -55,7 +55,12 @@ export function SeriesLink({
       void navigate();
       return;
     }
-    document.startViewTransition(navigate);
+    // Name the header only for this transition (see navigation.tsx for why it is not permanent).
+    const header = document.querySelector<HTMLElement>("[data-site-header]");
+    if (header) header.style.viewTransitionName = "site-header";
+    document.startViewTransition(navigate).finished.finally(() => {
+      if (header) header.style.viewTransitionName = "";
+    });
   };
 
   return (
