@@ -23,7 +23,7 @@ I'm on the subway. I pull out my phone, open Telegram, and type:
 
 > "Create a task about integrating web search as an agent tool"
 
-Within seconds, the bot responds with a structured task: title, acceptance criteria, technical considerations, all enriched from my one-line prompt. An agent picks it up and starts exploring the codebase. Ten minutes later, a plan appears in my chat:
+A few seconds later, the bot replies with a structured task, with a title, acceptance criteria and technical considerations, all based on my one-line prompt. An agent picks it up and starts exploring the codebase. Ten minutes later, a plan appears in my chat:
 
 > "Agent completed..."
 
@@ -37,15 +37,15 @@ The plan updates. I check it again and it looks good. I type:
 
 I put the phone away. By the time I get home, there's a PR waiting for review.
 
-## The problem: dead time and context fragmentation
+## Why I built this
 
 I juggle 3-4 side projects in parallel. Each lives in its own repo, has its own backlog, and needs regular attention.
 
-The problem is the gaps between coding sessions: the 20-minute commute, the 10-minute wait for coffee, the walk to the grocery store. These fragments add up to 1-2 hours per day that is completely dead for engineering work.
+The problem is the gaps between coding sessions: the 20-minute commute, the 10-minute wait for coffee, the walk to the grocery store. Together these add up to 1-2 hours per day that I couldn't use for engineering work.
 
 And then there's the idea problem. Sometimes I get ideas during commutes, before this system, those ideas went into a notes app. Then I'd forget about them or just needed extra effort to write a proper task based on half formed idea.
 
-I wanted a system where those fragments of time move projects forward, with me still making the decisions from wherever I happen to be. And I wanted ideas to go straight from my head to the backlog with zero middle steps.
+I wanted a system where these short breaks move the projects forward, while I still make the decisions, wherever I am. I also wanted my ideas to go straight to the backlog, without any extra step.
 
 ## No laptop required
 
@@ -59,7 +59,7 @@ If I have an idea for a feature at 11pm, I can create the task and let the agent
 
 The bot is backed by a [Mastra](https://mastra.ai) AI agent with Plane API tools. You send natural language messages, and the agent figures out what you mean and calls the right API.
 
-Here's what actual interactions look like:
+A few examples from my chats with the bot:
 
 **Creating a task:**
 
@@ -75,7 +75,7 @@ The bot pulls up the agent's proposed approach: which files it wants to change, 
 
 **Refining the plan:**
 
-> "Update the plan — don't refactor the auth module, just add the endpoint directly"
+> "Update the plan, don't refactor the auth module, just add the endpoint directly"
 
 I can change the agent's approach from my phone before any code gets written.
 
@@ -83,7 +83,7 @@ I can change the agent's approach from my phone before any code gets written.
 
 > "Looks good, go ahead"
 
-Only now does the agent start writing code. Every plan needs my approval before implementation begins.
+The agent starts writing code only at this point.
 
 **Checking what needs my attention:**
 
@@ -95,7 +95,7 @@ The bot returns the tasks where agents have finished planning and are waiting fo
 
 > "Add to the backlog: the mobile app should support offline mode for saved items"
 
-The idea goes straight to the project backlog, enriched with context, acceptance criteria, and technical considerations. No notes app, no "I'll add this later."
+The idea goes straight to the project backlog, extended with context, acceptance criteria, and technical considerations. I don't need a separate notes app for this anymore.
 
 **Checking agent status:**
 
@@ -130,21 +130,35 @@ When the user asks you to create a task:
    brief requests into well-structured, thorough task descriptions.
 ```
 
-The enrichment feeds directly into the planning phase. A vague "add rate limiting" task leads to a vague plan that I'd have to rewrite anyway. With acceptance criteria in the task, both the agent and I know what "done" means from the start.
+This step also helps the planning phase. A vague "add rate limiting" task leads to a vague plan that I'd have to rewrite anyway. With acceptance criteria in the task, both the agent and I know what "done" means from the start.
 
-## The review loop from your pocket
+## The review loop
 
 The workflow has five steps:
 
-1. The agent plans. After I create a task, the agent explores the codebase in read-only mode and proposes an approach. It posts the plan as a comment on the task and moves it to "Plan Review." Nothing gets implemented until I say so.
-2. I review on my phone. The plan shows up in Telegram. I read it while waiting for coffee. Does the approach make sense? Is it changing too much? Is it missing an edge case? I can see all of this in a chat message.
-3. I refine or approve. If the plan needs adjustment, I reply with feedback, for example "use the existing middleware instead of writing a new one" or "skip the migration, just add the column." The agent incorporates my feedback. If the plan looks good, I approve and the agent moves to implementation.
+1. The agent plans. After I create a task, the agent explores the codebase in read-only mode and proposes an approach. It posts the plan as a comment on the task and moves it to "Plan Review."
+2. I review on my phone. The plan shows up in Telegram. I read it while waiting for coffee and check whether the approach makes sense, whether it changes too much and whether it misses an edge case. A chat message is enough for this.
+3. I refine or approve. If the plan needs adjustment, I reply with feedback, for example "use the existing middleware instead of writing a new one" or "skip the migration, just add the column." The agent updates the plan based on my feedback. If the plan looks good, I approve and the agent moves to implementation.
 4. The agent implements. Now the agent writes code, runs tests, and creates a PR. If it hits a question mid-implementation ("should this error return 400 or 422?"), it asks via Telegram. I reply from my phone and the agent resumes.
 5. I review the PR. The task moves to "In Review." I usually do this on my laptop, but everything before this step happened on my phone.
 
-## What this actually feels like
+<FlowSteps
+  title="Who moves a task forward"
+  caption="A task from idea to pull request. You act at four points, all from the phone except the final code review. The agent writes no code until you approve the plan."
+  steps={[
+    { label: "Backlog", actor: "you", note: "Capture an idea in Telegram; the bot adds criteria" },
+    { label: "Todo", actor: "you", note: "Promote the task when you want it planned" },
+    { label: "Agent plans", actor: "agent", note: "Explores the code read-only and posts a plan" },
+    { label: "Plan Review", actor: "you", note: "Read it on the phone, then refine or approve" },
+    { label: "Agent implements", actor: "agent", note: "Writes code and tests, asks if it gets stuck" },
+    { label: "In Review", actor: "you", note: "Review the pull request, usually on a laptop" },
+  ]}
+  loop="Feedback on a plan sends it back to the agent; it stays in planning until you approve."
+/>
 
-A typical session looks like this:
+## A typical session
+
+On a normal day, it looks like this:
 
 1. Open Telegram and check what's in "Plan Review" across projects
 2. Read a plan for the API project and approve it
@@ -154,8 +168,8 @@ A typical session looks like this:
 6. Answer an agent question about error handling
 7. Check queue status: 2 agents running, 1 queued, $8.40 spent today
 
-By the time I sit down at a laptop, there are PRs waiting for review, fresh ideas captured in backlogs, and a kanban board that tells me where everything stands across all my projects.
+When I sit down at my laptop, there are PRs waiting for review, new ideas in the backlogs, and the kanban board shows where each project stands.
 
-I still review the PRs on the laptop. But the agent never writes code without my approval on the plan, and because the plans come to my phone, I can approve them from anywhere. That changes how many projects I can realistically keep moving.
+I still review the PRs on the laptop, but everything before that happens on my phone. I think this is the biggest win for me: I can keep more side projects moving at the same time than before.
 
 In the next post, I'll cover what happens behind the bot: how agents explore codebases, plan in read-only mode, and implement in isolated git worktrees.

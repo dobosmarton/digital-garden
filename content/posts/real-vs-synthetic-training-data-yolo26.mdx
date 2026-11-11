@@ -31,7 +31,7 @@ This post is only about training that detector. It addresses a common question f
 
 Labelling real screenshots is slow. A typical screenshot has 45 objects to box by hand, and I had 264 labelled screenshots. To fill the gap, the training set also had 2,400 synthetic images: sprites cut out of the game files and pasted onto generated backgrounds, with labels generated automatically. Two thirds of the training data was synthetic.
 
-The goal of this work was to measure what those images are worth. Does the model get better with them, worse, or stay the same? And if they help, is there a better way to make or use them?
+The goal of this work was to measure what those images are worth: whether the model gets better with them, worse, or stays the same, and if they help, whether there is a better way to make or use them.
 
 The first check was simple: compare the synthetic images with real ones. I measured the median box size of a few common objects:
 
@@ -41,8 +41,8 @@ The first check was simple: compare the synthetic images with real ones. I measu
   labelWidth={80}
   rows={["villager", "sheep", "boar", "house"]}
   series={[
-    { key: "real", label: "Real screenshots", color: "primary" },
-    { key: "synthetic", label: "Synthetic images", color: "secondary" },
+    { key: "real", label: "Real screenshots", color: "primary", shade: "light" },
+    { key: "synthetic", label: "Synthetic images", color: "primary" },
   ]}
   panels={[
     {
@@ -243,11 +243,11 @@ Per-class results show where the difference comes from:
 
 With the composites, the model found more animals but fewer trees and gold mines, the two classes the composites don't paste. The old synthetic images have trees and gold mines in every picture, even if at the wrong size.
 
-The runs also differ in the number of training steps (last column of the first table): run A gets 9,900 and the baseline 32,400, because a smaller dataset means fewer batches per epoch. Round 1 did not control for this; Round 3 shows why it matters.
+The runs also differ in the number of training steps (last column of the first table): run A gets 9,900 and the baseline 32,400, because a smaller dataset means fewer batches per epoch. Round 1 did not control for this, and Round 3 shows that it matters.
 
 ## Round 2: combining both data sources
 
-Before the next round I fixed a labelling error. Run B had seen 1,749 pasted goats but detected none of the 34 goats in the test set. Most of the "goat" labels turned out to be ibex, a wild animal that is hunted, rather than goats, which are herded; the model's predictions were correct. I relabelled them and trained ibex as `deer`, the class the agent uses for huntable animals:
+Before the next round I fixed a labelling error. Run B had seen 1,749 pasted goats but detected none of the 34 goats in the test set. Most of the "goat" labels were ibex, a wild animal that is hunted, while goats are herded. So the model's predictions were correct. I relabelled them and trained ibex as `deer`, the class the agent uses for huntable animals:
 
 ```yaml
 # classes.yaml
@@ -300,6 +300,63 @@ if optimizer == "auto":
 
 E has 3,456 images per epoch: 54 × 150 = 8,100 iterations, so AdamW. D has 4,456: 70 × 150 = 10,500, so MuSGD with a 70× higher learning rate. The limit is at ~4,225 images, and D was the only run that crossed it. Every other run in this post, including all of Round 1, trained with AdamW at 0.000145.
 
+<DotPlot
+  title="Which optimizer auto picked"
+  caption="Images per epoch for every run before Round 3. With the optimizer on auto, a run above ~4,225 images per epoch gets MuSGD with a 70× higher learning rate. Only D crossed the line."
+  labelWidth={200}
+  rows={[
+    "A: real only",
+    "C: composites, then real",
+    "B: real + composites",
+    "Baseline, E and E-s",
+    "D: E + composites",
+  ]}
+  series={[
+    { key: "adamw", label: "AdamW, lr 0.000145", color: "secondary" },
+    { key: "musgd", label: "MuSGD, lr 0.01", color: "primary" },
+  ]}
+  panels={[
+    {
+      domain: [0, 5000],
+      ticks: [0, 1000, 2000, 3000, 4000, 5000],
+      axisLabel: "Images per epoch",
+      reference: { value: 4225, label: "MuSGD above 4,225" },
+      points: [
+        { row: "A: real only", series: "adamw", value: 1056, tip: "A: 1,056 images per epoch, AdamW", label: "1,056" },
+        {
+          row: "C: composites, then real",
+          series: "adamw",
+          value: 1056,
+          tip: "C: 1,000, then 1,056 images per epoch, AdamW in both phases",
+          label: "1,056",
+        },
+        {
+          row: "B: real + composites",
+          series: "adamw",
+          value: 2056,
+          tip: "B: 2,056 images per epoch, AdamW",
+          label: "2,056",
+        },
+        {
+          row: "Baseline, E and E-s",
+          series: "adamw",
+          value: 3456,
+          tip: "Baseline, E and E-s: 3,456 images per epoch, AdamW",
+          label: "3,456",
+          labelSide: "left",
+        },
+        {
+          row: "D: E + composites",
+          series: "musgd",
+          value: 4456,
+          tip: "D: 4,456 images per epoch, MuSGD",
+          label: "4,456",
+        },
+      ],
+    },
+  ]}
+/>
+
 As a result, the comparison between D and E changed two variables at once. All runs also used seed 0, so the run-to-run variance was unknown.
 
 To separate them, I set the optimizer explicitly and ran a 2×2: two datasets (E, D) × two optimizers, each trained twice with different seeds. Everything else stayed the same:
@@ -318,7 +375,7 @@ To separate them, I set the optimizer explicitly and ran a 2×2: two datasets (E
   title="Round 3: optimizer, data and seed"
   caption="Each row is one data and optimizer combination, and the two dots are the two seeds. MuSGD moves F1 up on the E data, while gold mine recall varies as much between seeds as between settings."
   labelWidth={130}
-  legendNote="Two dots per row = two seeds"
+  shadeLegend={{ light: "Seed 0", dark: "Seed 1" }}
   rows={["E data · AdamW", "E data · MuSGD", "D data · AdamW", "D data · MuSGD"]}
   series={[
     { key: "adamw", label: "AdamW, lr 0.000145", color: "secondary" },
@@ -332,13 +389,37 @@ To separate them, I set the optimizer explicitly and ran a 2×2: two datasets (E
       decimals: 2,
       connect: true,
       points: [
-        { row: "E data · AdamW", series: "adamw", value: 0.846, tip: "E data · AdamW, seed 0: F1 0.846" },
+        {
+          row: "E data · AdamW",
+          series: "adamw",
+          value: 0.846,
+          tip: "E data · AdamW, seed 0: F1 0.846",
+          shade: "light",
+        },
         { row: "E data · AdamW", series: "adamw", value: 0.834, tip: "E data · AdamW, seed 1: F1 0.834" },
-        { row: "E data · MuSGD", series: "musgd", value: 0.86, tip: "E data · MuSGD, seed 0: F1 0.860" },
+        {
+          row: "E data · MuSGD",
+          series: "musgd",
+          value: 0.86,
+          tip: "E data · MuSGD, seed 0: F1 0.860",
+          shade: "light",
+        },
         { row: "E data · MuSGD", series: "musgd", value: 0.862, tip: "E data · MuSGD, seed 1: F1 0.862" },
-        { row: "D data · AdamW", series: "adamw", value: 0.863, tip: "D data · AdamW, seed 0: F1 0.863" },
+        {
+          row: "D data · AdamW",
+          series: "adamw",
+          value: 0.863,
+          tip: "D data · AdamW, seed 0: F1 0.863",
+          shade: "light",
+        },
         { row: "D data · AdamW", series: "adamw", value: 0.856, tip: "D data · AdamW, seed 1: F1 0.856" },
-        { row: "D data · MuSGD", series: "musgd", value: 0.867, tip: "D data · MuSGD, seed 0: F1 0.867" },
+        {
+          row: "D data · MuSGD",
+          series: "musgd",
+          value: 0.867,
+          tip: "D data · MuSGD, seed 0: F1 0.867",
+          shade: "light",
+        },
         { row: "D data · MuSGD", series: "musgd", value: 0.87, tip: "D data · MuSGD, seed 1: F1 0.870" },
       ],
     },
@@ -349,17 +430,36 @@ To separate them, I set the optimizer explicitly and ran a 2×2: two datasets (E
       decimals: 2,
       connect: true,
       points: [
-        { row: "E data · AdamW", series: "adamw", value: 0.789, tip: "E data · AdamW, seed 0: gold recall 0.789" },
+        {
+          row: "E data · AdamW",
+          series: "adamw",
+          value: 0.789,
+          tip: "E data · AdamW, seed 0: gold recall 0.789",
+          shade: "light",
+        },
         { row: "E data · AdamW", series: "adamw", value: 0.704, tip: "E data · AdamW, seed 1: gold recall 0.704" },
-        { row: "E data · MuSGD", series: "musgd", value: 0.746, tip: "E data · MuSGD, seed 0: gold recall 0.746" },
+        {
+          row: "E data · MuSGD",
+          series: "musgd",
+          value: 0.746,
+          tip: "E data · MuSGD, seed 0: gold recall 0.746",
+          shade: "light",
+        },
         { row: "E data · MuSGD", series: "musgd", value: 0.732, tip: "E data · MuSGD, seed 1: gold recall 0.732" },
-        { row: "D data · AdamW", series: "adamw", value: 0.746, tip: "D data · AdamW, seed 0: gold recall 0.746" },
+        {
+          row: "D data · AdamW",
+          series: "adamw",
+          value: 0.746,
+          tip: "D data · AdamW, seed 0: gold recall 0.746",
+          shade: "light",
+        },
         { row: "D data · AdamW", series: "adamw", value: 0.676, tip: "D data · AdamW, seed 1: gold recall 0.676" },
         {
           row: "D data · MuSGD",
           series: "musgd",
           value: 0.648,
           tip: "D data · MuSGD, seed 0: gold recall 0.648",
+          shade: "light",
           label: "0.648",
           labelSide: "left",
         },
@@ -482,7 +582,7 @@ The F1 improvement is +0.031 (p = 0.045), and the new model is better in 8 of th
   labelWidth={80}
   rows={["villager", "sheep", "deer", "boar", "tree", "gold mine"]}
   series={[
-    { key: "previous", label: "Previous model", color: "neutral" },
+    { key: "previous", label: "Previous model", color: "primary", shade: "light" },
     { key: "new", label: "New model", color: "primary" },
   ]}
   panels={[

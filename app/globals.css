@@ -151,6 +151,8 @@
     --chart-2: #eb6834;
     --chart-neutral: #9aa0a6;
     --chart-link: #cbd5e1;
+    /* How much of the series color a "light" shade keeps (the rest is page background) */
+    --chart-light-mix: 40%;
   }
 
   .dark {
@@ -179,6 +181,7 @@
     --chart-2: #d95926;
     --chart-neutral: #7d848b;
     --chart-link: #334155;
+    --chart-light-mix: 58%;
   }
 }
 

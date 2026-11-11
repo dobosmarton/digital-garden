@@ -3,6 +3,7 @@
 // Horizontal dot plot for MDX posts: one row per category, one dot per value, optional
 // line linking a row's dots (dumbbell). Several panels share the same rows and legend
 // and stack vertically. Props are plain data so MDX (a server component) can pass them.
+import { useEffect, useRef, useState } from "react";
 import {
   CartesianGrid,
   ReferenceLine,
@@ -24,7 +25,16 @@ const seriesFill: Record<SeriesColor, string> = {
   neutral: "var(--chart-neutral)",
 };
 
-type Series = { key: string; label: string; color: SeriesColor };
+// "light" is the series color mixed toward the page background: the quieter of two related
+// values (previous vs current, first vs second seed). "dark" is the plain series color.
+type Shade = "light" | "dark";
+
+const fillOf = (color: SeriesColor, shade: Shade = "dark") =>
+  shade === "light"
+    ? `color-mix(in oklab, ${seriesFill[color]} var(--chart-light-mix), hsl(var(--background)))`
+    : seriesFill[color];
+
+type Series = { key: string; label: string; color: SeriesColor; shade?: Shade };
 
 type Point = {
   row: string;
@@ -33,6 +43,8 @@ type Point = {
   tip: string;
   label?: string;
   labelSide?: "left" | "right";
+  // Overrides the series shade for this point.
+  shade?: Shade;
 };
 
 type Panel = {
@@ -41,6 +53,8 @@ type Panel = {
   ticks: number[];
   scale?: "linear" | "log";
   unit?: string;
+  // Written before each tick value, e.g. "$".
+  prefix?: string;
   decimals?: number;
   axisLabel?: string;
   reference?: { value: number; label: string };
@@ -54,28 +68,51 @@ type DotPlotProps = {
   series: Series[];
   panels: Panel[];
   legendNote?: string;
+  // Legend entries explaining what the light and dark shades mean, e.g. two seeds.
+  shadeLegend?: { light: string; dark: string };
   caption?: string;
   labelWidth?: number;
 };
 
 const ROW_HEIGHT = 40;
+// Narrow screens: the label column shrinks to this share of the chart width, and rows get
+// taller so a label can wrap onto a third line.
+const NARROW_LABEL_SHARE = 0.36;
+const NARROW_ROW_HEIGHT = 52;
 
-type PlotPoint = Point & { fill: string };
+// The chart's own width, so the label column can give way on phones instead of the chart
+// scrolling sideways. Null until measured (and on the server).
+function useWidth() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState<number | null>(null);
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, width] as const;
+}
+
+// `compact`: the chart is squeezed (phones), so a left-side label goes above its dot instead,
+// where it can't run into the row label.
+type PlotPoint = Point & { fill: string; compact: boolean };
 
 type ShapeProps = { cx?: number; cy?: number; payload?: PlotPoint };
 
 function Dot({ cx, cy, payload }: ShapeProps) {
   if (cx === undefined || cy === undefined || !payload) return <g />;
-  const side = payload.labelSide ?? "right";
+  const side = payload.labelSide === "left" ? (payload.compact ? "above" : "left") : "right";
   return (
     <g>
-      <circle cx={cx} cy={cy} r={6} fill={payload.fill} stroke="hsl(var(--background))" strokeWidth={2} />
+      <circle cx={cx} cy={cy} r={6} style={{ fill: payload.fill }} stroke="hsl(var(--background))" strokeWidth={2} />
       {payload.label ? (
         <text
-          x={side === "right" ? cx + 12 : cx - 12}
-          y={cy}
-          dy="0.35em"
-          textAnchor={side === "right" ? "start" : "end"}
+          x={side === "right" ? cx + 12 : side === "left" ? cx - 12 : cx}
+          y={side === "above" ? cy - 12 : cy}
+          dy={side === "above" ? 0 : "0.35em"}
+          textAnchor={side === "right" ? "start" : side === "left" ? "end" : "middle"}
           fontSize={12}
           fill="hsl(var(--muted-foreground))"
           style={{ fontVariantNumeric: "tabular-nums" }}
@@ -96,8 +133,10 @@ function Tip({ active, payload }: TipProps) {
 }
 
 function formatTick(value: number, panel: Panel) {
-  const text = panel.decimals === undefined ? String(value) : value.toFixed(panel.decimals);
-  return panel.unit ? `${text} ${panel.unit}` : text;
+  // Whole numbers get thousands separators: 4,225, not 4225.
+  const text = panel.decimals === undefined ? value.toLocaleString("en-US") : value.toFixed(panel.decimals);
+  const tick = `${panel.prefix ?? ""}${text}`;
+  return panel.unit ? `${tick} ${panel.unit}` : tick;
 }
 
 function PanelChart({
@@ -105,14 +144,17 @@ function PanelChart({
   rows,
   series,
   labelWidth,
+  rowHeight,
 }: {
   panel: Panel;
   rows: string[];
   series: Series[];
   labelWidth: number;
+  rowHeight: number;
 }) {
-  const colorOf = new Map(series.map((s) => [s.key, seriesFill[s.color]]));
-  const height = rows.length * ROW_HEIGHT + 24 + (panel.reference ? 20 : 0) + (panel.axisLabel ? 20 : 0);
+  const compact = rowHeight === NARROW_ROW_HEIGHT;
+  const seriesOf = new Map(series.map((s) => [s.key, s]));
+  const height = rows.length * rowHeight + 24 + (panel.reference ? 20 : 0) + (panel.axisLabel ? 24 : 0);
 
   return (
     <div>
@@ -120,7 +162,7 @@ function PanelChart({
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 640, height }}>
           <ScatterChart margin={{ top: panel.reference ? 22 : 6, right: 56, bottom: 0, left: 0 }}>
-            <CartesianGrid horizontal={false} stroke="hsl(var(--border))" />
+            <CartesianGrid horizontal={false} syncWithTicks stroke="hsl(var(--border))" />
             <XAxis
               type="number"
               dataKey="value"
@@ -136,13 +178,14 @@ function PanelChart({
                   ? {
                       value: panel.axisLabel,
                       position: "insideBottom",
-                      offset: 0,
+                      // Lifts the baseline off the svg edge so descenders are not clipped.
+                      offset: 6,
                       fill: "hsl(var(--muted-foreground))",
                       fontSize: 12,
                     }
                   : undefined
               }
-              height={panel.axisLabel ? 44 : 24}
+              height={panel.axisLabel ? 48 : 24}
             />
             <YAxis
               type="category"
@@ -171,7 +214,10 @@ function PanelChart({
               const data: PlotPoint[] = panel.points
                 .filter((p) => p.row === row)
                 .sort((a, b) => a.value - b.value)
-                .map((p) => ({ ...p, fill: colorOf.get(p.series) ?? seriesFill.neutral }));
+                .map((p) => {
+                  const s = seriesOf.get(p.series);
+                  return { ...p, fill: fillOf(s?.color ?? "neutral", p.shade ?? s?.shade), compact };
+                });
               return (
                 <Scatter
                   key={row}
@@ -190,29 +236,63 @@ function PanelChart({
   );
 }
 
-export function DotPlot({ title, rows, series, panels, legendNote, caption, labelWidth = 120 }: DotPlotProps) {
+export function DotPlot({
+  title,
+  rows,
+  series,
+  panels,
+  legendNote,
+  shadeLegend,
+  caption,
+  labelWidth = 120,
+}: DotPlotProps) {
+  // With one series the shades are that series' color; with several they are only a key, in gray.
+  const shadeColor: SeriesColor = series.length === 1 ? series[0].color : "neutral";
+  const [chartRef, chartWidth] = useWidth();
+  const narrowLabelWidth = chartWidth === null ? labelWidth : Math.round(chartWidth * NARROW_LABEL_SHARE);
+  const fittedLabelWidth = Math.min(labelWidth, narrowLabelWidth);
+  const rowHeight = fittedLabelWidth < labelWidth ? NARROW_ROW_HEIGHT : ROW_HEIGHT;
+  const swatch = (background: string) => <span className="inline-block size-2.5 rounded-full" style={{ background }} />;
+
   return (
     <ArtifactFrame label={title} meta={`${rows.length} rows`} caption={caption}>
       <figure className="not-prose font-sans" role="group" aria-label={title}>
-        {series.length > 1 || legendNote ? (
+        {series.length > 1 || legendNote || shadeLegend ? (
           <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             {series.length > 1
               ? series.map((s) => (
                   <span key={s.key} className="inline-flex items-center gap-1.5">
-                    <span className="inline-block size-2.5 rounded-full" style={{ background: seriesFill[s.color] }} />
+                    {swatch(fillOf(s.color, s.shade))}
                     {s.label}
                   </span>
                 ))
               : null}
+            {shadeLegend ? (
+              <>
+                <span className="inline-flex items-center gap-1.5">
+                  {swatch(fillOf(shadeColor, "light"))}
+                  {shadeLegend.light}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  {swatch(fillOf(shadeColor))}
+                  {shadeLegend.dark}
+                </span>
+              </>
+            ) : null}
             {legendNote ? <span>{legendNote}</span> : null}
           </div>
         ) : null}
-        <div className="overflow-x-auto">
-          <div className="space-y-4" style={{ minWidth: labelWidth + 260 }}>
-            {panels.map((panel, i) => (
-              <PanelChart key={panel.title ?? i} panel={panel} rows={rows} series={series} labelWidth={labelWidth} />
-            ))}
-          </div>
+        <div ref={chartRef} className="space-y-4">
+          {panels.map((panel, i) => (
+            <PanelChart
+              key={panel.title ?? i}
+              panel={panel}
+              rows={rows}
+              series={series}
+              labelWidth={fittedLabelWidth}
+              rowHeight={rowHeight}
+            />
+          ))}
         </div>
       </figure>
     </ArtifactFrame>

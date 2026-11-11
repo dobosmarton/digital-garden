@@ -17,8 +17,13 @@ import { ArtifactFrame, imageFormat } from "@/components/ui/artifact-frame";
 import { CodeFigure } from "./code-figure";
 import { DotPlot } from "./dot-plot";
 import { Figure } from "./figure";
+import { FlowSteps } from "./flow-steps";
+import { LoopSteps } from "./loop-steps";
 import { NewsletterCTA } from "./newsletter-cta";
 import { TableFrame } from "./table-frame";
+import { TierDiagram } from "./tier-diagram";
+import { TimeBars } from "./time-bars";
+import { ToolTrace } from "./tool-trace";
 import { YouTubeVideo } from "./youtube-video";
 
 // Bare <Image> in posts: framed like the other artifacts, labelled with its alt text and format.
@@ -37,6 +42,11 @@ const components = {
   Image: FramedImage,
   Figure,
   DotPlot,
+  TierDiagram,
+  TimeBars,
+  ToolTrace,
+  FlowSteps,
+  LoopSteps,
   NewsletterCTA,
   YouTubeVideo,
   Tweet: (props: TweetProps) => {
