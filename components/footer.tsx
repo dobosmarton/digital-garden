@@ -2,54 +2,55 @@ import React from "react";
 import { Mail } from "lucide-react";
 
 import siteMetadata, { defaultAuthor } from "@/lib/metadata";
+import { BracketLabel } from "@/components/ui/frame";
 import { CopyButton } from "@/components/copy-button";
 import { SocialButton } from "@/components/social-button";
 
+const linkClass = "text-foreground underline decoration-foreground/20 underline-offset-4 hover:decoration-foreground";
+
 const Footer = () => {
   return (
-    <footer className="mx-auto flex max-w-6xl flex-col items-center gap-6 border-t py-6 pb-28 sm:pb-6">
-      <div className="container flex flex-col items-center justify-between space-y-5 text-center lg:flex-row lg:space-y-0 lg:text-left">
-        <div className="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0 lg:order-2">
-          <div className="flex flex-row flex-wrap justify-center space-x-2 text-sm text-muted-foreground">
-            {defaultAuthor.socialProfiles.map((platform) => (
-              <SocialButton
-                key={platform.name}
-                variant="ghost"
-                size="icon"
-                className="hover:text-foreground"
-                platform={platform}
-              />
-            ))}
-            <CopyButton size="icon" variant="ghost" className="hover:text-foreground" copyText={defaultAuthor.email}>
-              <Mail />
-              <span className="sr-only">Email address</span>
-            </CopyButton>
-          </div>
-        </div>
-        <div className="flex flex-col gap-4 px-8 md:gap-2 md:px-0 lg:order-1">
-          <p className="text-sm text-muted-foreground md:text-left">
-            &copy; {new Date().getFullYear()} Built by {defaultAuthor.name}. &nbsp;
+    <footer className="border-t border-foreground/10">
+      <div className="container flex max-w-6xl flex-col gap-6 py-8 pb-28 sm:pb-8 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-2">
+          <BracketLabel>
+            &copy; {new Date().getFullYear()} {defaultAuthor.name}
+          </BracketLabel>
+          <p className="font-mono text-[11px] text-muted-foreground">
+            Source on{" "}
+            <a href={siteMetadata.siteRepo} target="_blank" rel="noreferrer" className={linkClass}>
+              GitHub
+            </a>
+            {" · "}
             <a
               href={defaultAuthor.socialProfiles.find((platform) => platform.name === "x")?.link}
               target="_blank"
               rel="noreferrer"
-              className="font-medium underline underline-offset-4"
+              className={linkClass}
             >
               {defaultAuthor.handle}
             </a>
           </p>
-          <p className="text-sm text-muted-foreground md:text-left">
-            Source code available on{" "}
-            <a
-              href={siteMetadata.siteRepo}
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium underline underline-offset-4"
-            >
-              GitHub
-            </a>
-            .
-          </p>
+        </div>
+        <div className="-ml-2 flex flex-wrap items-center text-muted-foreground md:ml-0">
+          {defaultAuthor.socialProfiles.map((platform) => (
+            <SocialButton
+              key={platform.name}
+              variant="ghost"
+              size="icon"
+              className="hover:bg-transparent hover:text-accent-foreground"
+              platform={platform}
+            />
+          ))}
+          <CopyButton
+            size="icon"
+            variant="ghost"
+            className="hover:bg-transparent hover:text-accent-foreground"
+            copyText={defaultAuthor.email}
+          >
+            <Mail />
+            <span className="sr-only">Email address</span>
+          </CopyButton>
         </div>
       </div>
     </footer>

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { allPages } from "contentlayer/generated";
 import { format, parseISO } from "date-fns";
 
+import { PageHeader } from "@/components/ui/frame";
 import { Mdx } from "@/components/mdx";
 
 type Params = { slug: string };
@@ -52,17 +53,24 @@ export default async function PagePage(props: PageProps) {
   }
 
   return (
-    <div className="container max-w-6xl pb-10">
-      <article className="mx-auto prose max-w-5xl dark:prose-invert prose-headings:mt-8 prose-headings:mb-3 prose-headings:font-heading prose-headings:leading-tight prose-headings:font-bold prose-a:hover:text-accent-foreground prose-headings:prose-a:no-underline">
-        <h1 className="mt-0">{page.title}</h1>
-        {page.description && <p className="m-0 text-xl">{page.description}</p>}
-        {page.lastUpdatedDate && (
-          <time className="text-sm text-slate-500">
-            Last updated: {format(parseISO(page.lastUpdatedDate), "LLLL d, yyyy")}
-          </time>
-        )}
-        <hr className="my-4!" />
-        <Mdx code={page.body.code} />
+    <div className="container max-w-6xl pt-6 pb-10">
+      <article className="max-w-3xl">
+        <PageHeader
+          label="Page"
+          title={page.title}
+          aside={
+            page.lastUpdatedDate && (
+              <time dateTime={page.lastUpdatedDate}>
+                Updated {format(parseISO(page.lastUpdatedDate), "LLLL d, yyyy")}
+              </time>
+            )
+          }
+          className="mb-6"
+        />
+        {page.description && <p className="mb-10 text-xl text-muted-foreground">{page.description}</p>}
+        <div className="prose max-w-none dark:prose-invert prose-headings:mt-8 prose-headings:mb-3 prose-headings:font-heading prose-headings:leading-tight prose-headings:font-bold prose-a:hover:text-accent-foreground prose-headings:prose-a:no-underline">
+          <Mdx code={page.body.code} />
+        </div>
       </article>
     </div>
   );

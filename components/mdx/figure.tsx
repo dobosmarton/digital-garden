@@ -1,5 +1,7 @@
 import NextImage from "next/image";
 
+import { ArtifactFrame, imageFormat } from "@/components/ui/artifact-frame";
+
 type FigureProps = {
   src: string;
   alt: string;
@@ -10,7 +12,7 @@ type FigureProps = {
 
 export function Figure({ src, alt, width, height, caption }: FigureProps) {
   return (
-    <figure>
+    <ArtifactFrame label={alt} meta={imageFormat(src)} caption={caption}>
       <NextImage
         src={src}
         alt={alt}
@@ -19,7 +21,6 @@ export function Figure({ src, alt, width, height, caption }: FigureProps) {
         sizes="(min-width: 1024px) 672px, 100vw"
         className="my-0! h-auto w-full border border-border"
       />
-      {caption ? <figcaption>{caption}</figcaption> : null}
-    </figure>
+    </ArtifactFrame>
   );
 }

@@ -14,6 +14,8 @@ import {
   YAxis,
 } from "recharts";
 
+import { ArtifactFrame } from "@/components/ui/artifact-frame";
+
 type SeriesColor = "primary" | "secondary" | "neutral";
 
 const seriesFill: Record<SeriesColor, string> = {
@@ -190,28 +192,29 @@ function PanelChart({
 
 export function DotPlot({ title, rows, series, panels, legendNote, caption, labelWidth = 120 }: DotPlotProps) {
   return (
-    <figure className="not-prose font-sans" role="group" aria-label={title}>
-      {series.length > 1 || legendNote ? (
-        <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          {series.length > 1
-            ? series.map((s) => (
-                <span key={s.key} className="inline-flex items-center gap-1.5">
-                  <span className="inline-block size-2.5 rounded-full" style={{ background: seriesFill[s.color] }} />
-                  {s.label}
-                </span>
-              ))
-            : null}
-          {legendNote ? <span>{legendNote}</span> : null}
+    <ArtifactFrame label={title} meta={`${rows.length} rows`} caption={caption}>
+      <figure className="not-prose font-sans" role="group" aria-label={title}>
+        {series.length > 1 || legendNote ? (
+          <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            {series.length > 1
+              ? series.map((s) => (
+                  <span key={s.key} className="inline-flex items-center gap-1.5">
+                    <span className="inline-block size-2.5 rounded-full" style={{ background: seriesFill[s.color] }} />
+                    {s.label}
+                  </span>
+                ))
+              : null}
+            {legendNote ? <span>{legendNote}</span> : null}
+          </div>
+        ) : null}
+        <div className="overflow-x-auto">
+          <div className="space-y-4" style={{ minWidth: labelWidth + 260 }}>
+            {panels.map((panel, i) => (
+              <PanelChart key={panel.title ?? i} panel={panel} rows={rows} series={series} labelWidth={labelWidth} />
+            ))}
+          </div>
         </div>
-      ) : null}
-      <div className="overflow-x-auto">
-        <div className="space-y-4" style={{ minWidth: labelWidth + 260 }}>
-          {panels.map((panel, i) => (
-            <PanelChart key={panel.title ?? i} panel={panel} rows={rows} series={series} labelWidth={labelWidth} />
-          ))}
-        </div>
-      </div>
-      {caption ? <figcaption>{caption}</figcaption> : null}
-    </figure>
+      </figure>
+    </ArtifactFrame>
   );
 }

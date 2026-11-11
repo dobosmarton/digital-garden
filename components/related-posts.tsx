@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { allPosts, Post } from "contentlayer/generated";
 
+import { cn } from "@/lib/utils";
+import { cellClass, CellFooter, cellHoverClass, SectionLabel } from "@/components/ui/frame";
+
 type RelatedPostsProps = {
   currentSlug: string;
   tags?: string[];
@@ -27,20 +30,25 @@ export const RelatedPosts = ({ currentSlug, tags = [], limit = 3 }: RelatedPosts
 
   return (
     <section aria-labelledby="related-posts-heading" className="not-prose mt-10">
-      <h2 id="related-posts-heading" className="mb-4 font-heading text-xl font-bold">
+      <SectionLabel id="related-posts-heading" className="mb-5">
         Related posts
-      </h2>
+      </SectionLabel>
       <ul className="grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
         {candidates.map((post) => (
           <li key={post.slug} className="list-none">
             <Link
               href={`/posts/${post.slug}`}
-              className="block h-full rounded-md border border-border bg-card p-4 no-underline transition-colors hover:bg-foreground/5"
+              className={cn(cellClass, cellHoverClass, "group flex h-full flex-col no-underline")}
             >
-              <h3 className="m-0 text-base font-semibold text-foreground">{post.title}</h3>
-              {post.description && (
-                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{post.description}</p>
-              )}
+              <div className="p-4">
+                <h3 className="m-0 text-base font-semibold text-foreground transition-colors group-hover:text-accent-foreground">
+                  {post.title}
+                </h3>
+                {post.description && (
+                  <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{post.description}</p>
+                )}
+              </div>
+              <CellFooter className="mt-auto">{post.readTimeMinutes} min read</CellFooter>
             </Link>
           </li>
         ))}

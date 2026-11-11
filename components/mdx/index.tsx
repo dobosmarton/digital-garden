@@ -7,24 +7,34 @@ import "server-only";
 import type { ComponentType } from "react";
 import * as React from "react";
 import * as jsxRuntime from "react/jsx-runtime";
-import NextImage from "next/image";
+import NextImage, { type ImageProps } from "next/image";
 import * as ReactDOM from "react-dom";
 import type { TweetProps } from "react-tweet";
 import { Tweet } from "react-tweet";
 
+import { ArtifactFrame, imageFormat } from "@/components/ui/artifact-frame";
+
+import { CodeFigure } from "./code-figure";
 import { DotPlot } from "./dot-plot";
 import { Figure } from "./figure";
 import { NewsletterCTA } from "./newsletter-cta";
+import { TableFrame } from "./table-frame";
 import { YouTubeVideo } from "./youtube-video";
 
+// Bare <Image> in posts: framed like the other artifacts, labelled with its alt text and format.
+function FramedImage(props: ImageProps) {
+  const label = typeof props.alt === "string" && props.alt ? props.alt : "Image";
+  return (
+    <ArtifactFrame label={label} meta={imageFormat(props.src)}>
+      <NextImage {...props} />
+    </ArtifactFrame>
+  );
+}
+
 const components = {
-  // Wide tables scroll inside their own box instead of widening the page on phones.
-  table: (props: React.ComponentProps<"table">) => (
-    <div className="table-scroll">
-      <table {...props} />
-    </div>
-  ),
-  Image: NextImage,
+  figure: CodeFigure,
+  table: TableFrame,
+  Image: FramedImage,
   Figure,
   DotPlot,
   NewsletterCTA,

@@ -23,7 +23,9 @@ export default makeSource({
       options.target = "esnext";
       return options;
     },
-    remarkPlugins: [[remarkGfm], [remarkMath]],
+    // Only $$...$$ is math: single dollars are prices in prose ("$3.00 ... $0.30"), and
+    // remark-math would otherwise render the text between them as a formula.
+    remarkPlugins: [[remarkGfm], [remarkMath, { singleDollarTextMath: false }]],
     rehypePlugins: [
       rehypeKatex,
       rehypeSlug,
@@ -39,7 +41,12 @@ export default makeSource({
       [
         rehypePrettyCode as Plugin<any[], any, any>,
         {
-          theme: "github-dark",
+          // Both themes ship as CSS variables (--shiki-light / --shiki-dark); globals.css
+          // picks one per color scheme. The card supplies the background.
+          theme: { light: "github-light", dark: "github-dark" },
+          keepBackground: false,
+          // Unlabelled fences still get the figure wrapper, so every block has a header strip.
+          defaultLang: { block: "plaintext" },
         } satisfies Partial<PrettyCodeOptions>,
       ],
     ],

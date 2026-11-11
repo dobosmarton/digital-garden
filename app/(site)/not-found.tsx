@@ -3,25 +3,26 @@
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { StatusPanel } from "@/components/status-panel";
 
 export default function NotFound() {
   const router = useRouter();
 
   return (
-    <div className="mb-16 items-center justify-center text-center">
-      <span className="bg-linear-to-b from-foreground to-transparent bg-clip-text text-[10rem] leading-none font-extrabold text-transparent">
-        404
-      </span>
-      <h2 className="my-2 font-heading text-2xl font-bold">Something&apos;s missing</h2>
-      <p>Sorry, the page you are looking for doesn&apos;t exist or has been moved.</p>
-      <div className="mt-8 flex justify-center gap-2">
-        <Button onClick={() => router.back()} variant="default" size="lg">
-          Go back
-        </Button>
-        <Button onClick={() => router.push("/")} variant="ghost" size="lg">
-          Back to Home
-        </Button>
-      </div>
-    </div>
+    <StatusPanel
+      code="404"
+      status="Page not found"
+      title="Something's missing"
+      actions={
+        <>
+          <Button onClick={() => router.back()}>Go back</Button>
+          <Button onClick={() => router.push("/")} variant="outline" className="border-foreground/10">
+            Back to home
+          </Button>
+        </>
+      }
+    >
+      Sorry, the page you are looking for doesn&apos;t exist or has been moved.
+    </StatusPanel>
   );
 }

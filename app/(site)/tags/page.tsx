@@ -5,7 +5,7 @@ import { allPosts } from "contentlayer/generated";
 
 import siteMetadata, { BASE_URL } from "@/lib/metadata";
 import { getTagsWithCount } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/frame";
 
 export async function generateMetadata(): Promise<Metadata> {
   const title = "Tags";
@@ -23,37 +23,34 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function TagsPage() {
   const posts = allPosts.filter((post) => post.status === "published");
 
-  const tags = getTagsWithCount(posts);
+  const tags: Record<string, number> = getTagsWithCount(posts);
 
   if (!tags || Object.keys(tags).length === 0) {
     notFound();
   }
 
+  const sorted = Object.entries(tags).sort(([a, countA], [b, countB]) => countB - countA || a.localeCompare(b));
+
   return (
-    <div className="container mb-4">
-      <div className="mx-auto prose max-w-5xl dark:prose-invert prose-headings:font-heading prose-headings:leading-tight prose-headings:font-bold prose-a:hover:text-accent-foreground prose-headings:prose-a:no-underline">
-        <h1 className="mt-0">All tags</h1>
-        <hr className="my-4!" />
-        <div className="grid grid-flow-row gap-2">
-          <ul className="flex list-none flex-wrap gap-2 p-0">
-            {Object.keys(tags).map((tag) => {
-              return (
-                <li className="list-none" key={tag}>
-                  <Link href={`/tags/${tag}`} className="group">
-                    <Badge
-                      variant="outline"
-                      className="inline-block rounded-full border border-muted-foreground/50 bg-muted-foreground/10 px-3 py-1 text-base font-medium text-muted-foreground transition hover:bg-muted-foreground hover:text-foreground"
-                    >
-                      <span>
-                        {tag} &middot; ({tags[tag]})
-                      </span>
-                    </Badge>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+    <div className="container max-w-6xl pt-6 pb-10">
+      <div className="max-w-3xl">
+        <PageHeader label="Topics" title="All tags" aside={`${sorted.length} tags`} />
+        {/* A grid of hairline cells: the list draws the top and left edges, each cell its right and bottom. */}
+        <ul className="grid grid-cols-2 overflow-hidden rounded-lg border-t border-l border-foreground/10 sm:grid-cols-3">
+          {sorted.map(([tag, count]) => (
+            <li key={tag} className="border-r border-b border-foreground/10">
+              <Link
+                href={`/tags/${tag}`}
+                className="group flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-card"
+              >
+                <span className="truncate transition-colors group-hover:text-accent-foreground">{tag}</span>
+                <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
+                  {String(count).padStart(2, "0")}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

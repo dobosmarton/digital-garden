@@ -4,10 +4,11 @@ import { ArrowRight } from "lucide-react";
 
 import siteMetadata from "@/lib/metadata";
 import { sortPosts } from "@/lib/utils";
+import { SectionLabel } from "@/components/ui/frame";
 import { HeroImage } from "@/components/hero-image";
 import { Mdx } from "@/components/mdx";
 import NewsletterSubscribe from "@/components/newsletter-subscribe";
-import PostPreview from "@/components/post-preview";
+import { PostList } from "@/components/post-list";
 
 async function getAboutPage() {
   const aboutPage = allPages.find((page) => page.slug === "about" && page.status !== "draft");
@@ -31,22 +32,16 @@ export default async function Home() {
       <HeroImage
         title="Hi, I am Marton. I build things on the internet."
         subtitle="Welcome to my personal blog, where I write about software."
-      />
-      <div className="container mt-12 max-w-6xl">
-        <div className="max-w-3xl">
-          <div className="grid grid-flow-row gap-2">
-            {posts.map((post) => (
-              <PostPreview key={post._id} post={post} />
-            ))}
-          </div>
-          <Link
-            href="/posts"
-            className="mt-10 flex items-center py-2 text-sm text-accent-foreground underline-offset-4 hover:text-muted-foreground hover:underline"
-          >
-            See all posts <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </div>
-      </div>
+      >
+        <SectionLabel className="mb-4">Latest posts</SectionLabel>
+        <PostList posts={posts} />
+        <Link
+          href="/posts"
+          className="mt-6 flex items-center py-2 text-sm text-accent-foreground underline-offset-4 hover:text-muted-foreground hover:underline"
+        >
+          See all posts <ArrowRight className="ml-2 h-4 w-4" />
+        </Link>
+      </HeroImage>
       <NewsletterSubscribe
         title="I also write deep dives in email"
         description="I write about software engineering — building things on the internet, working with AI, and the messy parts no one explains. New posts straight to your inbox. Unsubscribe whenever."
@@ -54,6 +49,7 @@ export default async function Home() {
       />
       {aboutPage && (
         <div className="container max-w-6xl">
+          <SectionLabel className="mb-6">About</SectionLabel>
           <h2 className="mb-8 font-heading text-4xl font-bold">Who&apos;s this guy again?</h2>
           <div className="justify-between">
             <article className="prose max-w-5xl dark:prose-invert prose-headings:mt-8 prose-headings:mb-3 prose-headings:font-heading prose-headings:leading-tight prose-headings:font-bold prose-a:hover:text-accent-foreground prose-headings:prose-a:no-underline">

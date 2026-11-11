@@ -3,7 +3,8 @@ import { allPosts } from "contentlayer/generated";
 
 import { defaultAuthor } from "@/lib/metadata";
 import { sortPosts } from "@/lib/utils";
-import PostPreview from "@/components/post-preview";
+import { PageHeader } from "@/components/ui/frame";
+import { PostList } from "@/components/post-list";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -16,15 +17,10 @@ export default function Blog() {
   const posts = sortPosts(allPosts.filter((post) => post.status === "published"));
 
   return (
-    <div className="container mb-4">
-      <div className="mx-auto prose max-w-5xl dark:prose-invert prose-headings:font-heading prose-headings:leading-tight prose-headings:font-bold prose-a:hover:text-accent-foreground prose-headings:prose-a:no-underline">
-        <h1 className="mt-0">Latest Posts</h1>
-        <hr className="my-4!" />
-        <div className="grid grid-flow-row gap-2">
-          {posts.map((post) => (
-            <PostPreview post={post} key={post._id} />
-          ))}
-        </div>
+    <div className="container max-w-6xl pt-6 pb-10">
+      <div className="max-w-3xl">
+        <PageHeader label="Blog" title="All posts" aside={`${posts.length} posts`} />
+        <PostList posts={posts} />
       </div>
     </div>
   );

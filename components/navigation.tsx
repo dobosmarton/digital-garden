@@ -54,7 +54,9 @@ export function Navigation({ commandPosts }: { commandPosts: CommandPost[] }) {
           upvoting on DevHunt from Aug 21-27.
         </AnnouncementBar>
       )}
+      {/* Named so page-to-page view transitions (series navigation) leave the header in place. */}
       <header
+        style={{ viewTransitionName: "site-header" }}
         className={cn(
           "fixed inset-x-0 -bottom-32 z-20 mx-auto mb-4 animate-out px-4 transition-all duration-1000 sm:top-0 sm:h-16 sm:px-0 sm:transition-none",
           visible && "bottom-0 animate-in",
@@ -68,10 +70,10 @@ export function Navigation({ commandPosts }: { commandPosts: CommandPost[] }) {
             </Link>
           </div>
         )}
-        <div className="flex items-center gap-2 rounded-full border-b border-foreground/25 bg-background/95 px-3 py-2 shadow-md supports-backdrop-filter:bg-background/60 supports-backdrop-filter:bg-clip-padding supports-backdrop-filter:backdrop-blur-sm sm:justify-between sm:rounded-none sm:px-3">
+        <div className="flex items-center gap-2 rounded-full border border-foreground/10 bg-background/95 px-3 py-2 shadow-lg supports-backdrop-filter:bg-background/70 supports-backdrop-filter:bg-clip-padding supports-backdrop-filter:backdrop-blur-md sm:justify-between sm:rounded-none sm:border-x-0 sm:border-t-0 sm:px-3 sm:shadow-none">
           <div className="container mx-auto flex max-w-6xl">
             <div className="flex items-center justify-start">
-              <div className="group aspect-square h-auto w-10 overflow-hidden rounded-full border border-black">
+              <div className="group aspect-square h-auto w-10 overflow-hidden rounded-full border border-foreground/10">
                 <Link href="/" aria-label="Go to Home">
                   <Image
                     className="duration-300 group-hover:scale-110"

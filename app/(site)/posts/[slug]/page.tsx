@@ -9,6 +9,7 @@ import { ArrowLeft } from "lucide-react";
 import { BASE_URL, defaultAuthor } from "@/lib/metadata";
 import { blogPostingJsonLd, breadcrumbJsonLd, postUrl, twitterHandle } from "@/lib/seo";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { BracketLabel } from "@/components/ui/frame";
 import { Mdx } from "@/components/mdx";
 import NewsletterSubscribe from "@/components/newsletter-subscribe";
 import { PostReferencesBox } from "@/components/post-references-box";
@@ -137,9 +138,9 @@ export default async function PostPage(props: PostProps) {
           <header className="not-prose mb-10">
             <Link
               href="/posts"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="inline-flex items-center gap-1.5 font-mono text-[11px] tracking-wider text-muted-foreground uppercase transition-colors hover:text-foreground"
             >
-              <ArrowLeft size={14} aria-hidden="true" />
+              <ArrowLeft size={12} aria-hidden="true" />
               All posts
             </Link>
             <h1 className="mt-6 font-heading text-[2.1rem] leading-[1.12] font-bold tracking-tight text-balance text-slate-950 sm:text-[2.6rem] dark:text-slate-50">
@@ -150,21 +151,27 @@ export default async function PostPage(props: PostProps) {
                 {post.description}
               </p>
             )}
-            <p className="mt-6 flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground">
+            <p className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-foreground/10 py-2.5 font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
               <time dateTime={post.publishedDate}>{published}</time>
               {updated && (
-                <span>
-                  Updated <time dateTime={post.lastUpdatedDate}>{updated}</time>
-                </span>
+                <>
+                  <span aria-hidden>·</span>
+                  <span>
+                    Updated <time dateTime={post.lastUpdatedDate}>{updated}</time>
+                  </span>
+                </>
               )}
-              <span>{post.readTimeMinutes} min read</span>
+              <span aria-hidden>·</span>
+              <span className="text-accent-foreground">{post.readTimeMinutes} min read</span>
             </p>
           </header>
           {hasToc && (
             <div className="not-prose mb-10 xl:hidden">
-              <Accordion type="single" collapsible className="border-y">
+              <Accordion type="single" collapsible className="border-y border-foreground/10">
                 <AccordionItem value="table-of-contents" className="border-b-0">
-                  <AccordionTrigger className="py-3 text-sm hover:no-underline">Contents</AccordionTrigger>
+                  <AccordionTrigger className="py-3 text-sm hover:no-underline">
+                    <BracketLabel>Contents</BracketLabel>
+                  </AccordionTrigger>
                   <AccordionContent>
                     <TableOfContents chapters={post.headings} />
                   </AccordionContent>
@@ -185,14 +192,14 @@ export default async function PostPage(props: PostProps) {
               <PostReferencesBox tools={post.tools} />
             </div>
           )}
-          <footer className="not-prose mt-12 flex flex-wrap items-center justify-between gap-4 border-t pt-6">
+          <footer className="not-prose mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-foreground/10 pt-6">
             {post.tags && (
               <ul className="flex flex-wrap gap-2 text-sm">
                 {post.tags.map((tag: string) => (
                   <li key={tag}>
                     <Link
                       href={`/tags/${tag}`}
-                      className="inline-block rounded-full bg-muted px-3 py-1 text-muted-foreground transition-colors hover:text-foreground"
+                      className="inline-block rounded-full border border-foreground/10 px-3 py-1 text-muted-foreground transition-colors hover:border-accent-foreground/40 hover:text-accent-foreground"
                     >
                       {tag}
                     </Link>
@@ -209,7 +216,7 @@ export default async function PostPage(props: PostProps) {
         {hasToc && (
           <aside className="hidden pt-[3.4rem] xl:block">
             <div className="sticky top-28 max-h-[calc(100vh-8rem)] overflow-y-auto">
-              <p className="mb-3 text-sm font-medium text-foreground">On this page</p>
+              <BracketLabel className="mb-3 block">On this page</BracketLabel>
               <TableOfContents chapters={post.headings} />
             </div>
           </aside>

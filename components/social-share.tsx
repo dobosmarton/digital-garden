@@ -21,7 +21,9 @@ export const SocialShare = ({ url, text }: SocialShareProps) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline">Share</Button>
+        <Button variant="outline" className="border-foreground/10 bg-card">
+          Share
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuLabel>Share Post</DropdownMenuLabel>

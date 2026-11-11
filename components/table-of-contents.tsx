@@ -39,7 +39,7 @@ export function TableOfContents({ chapters }: TocProps) {
 
   return (
     <nav aria-label="Table of contents">
-      <ol className="list-none space-y-0.5 border-l border-border text-sm">
+      <ol className="list-none space-y-0.5 border-l border-foreground/10 text-sm">
         {chapters.map((heading: PostHeading) => (
           <li key={heading.slug} className="list-none">
             <Link
@@ -49,7 +49,7 @@ export function TableOfContents({ chapters }: TocProps) {
                 "-ml-px block border-l-2 border-transparent py-1 pr-2 pl-3 leading-snug text-muted-foreground transition-colors hover:text-foreground",
                 heading.heading === 3 && "pl-6",
                 heading.heading >= 4 && "pl-9",
-                activeSlug === heading.slug && "border-slate-900 font-medium text-foreground dark:border-slate-100"
+                activeSlug === heading.slug && "border-accent-foreground font-medium text-foreground"
               )}
             >
               {heading.text.replace(/`/g, "")}

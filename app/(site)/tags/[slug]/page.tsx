@@ -1,10 +1,13 @@
 import { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { allPosts, Post } from "contentlayer/generated";
+import { ArrowLeft } from "lucide-react";
 
 import { tagUrl } from "@/lib/seo";
 import { sortPosts } from "@/lib/utils";
-import PostPreview from "@/components/post-preview";
+import { PageHeader } from "@/components/ui/frame";
+import { PostList } from "@/components/post-list";
 
 // Get sorted articles from the contentlayer
 async function getSortedArticles(): Promise<Post[]> {
@@ -51,15 +54,17 @@ export default async function TagPage(props: { params: Promise<{ slug: string }>
   }
 
   return (
-    <div className="container mb-4">
-      <div className="mx-auto prose max-w-5xl dark:prose-invert prose-headings:font-heading prose-headings:leading-tight prose-headings:font-bold prose-a:hover:text-accent-foreground prose-headings:prose-a:no-underline">
-        <h1 className="mt-0">All posts in {tag}</h1>
-        <hr className="my-4!" />
-        <div className="grid grid-flow-row gap-2">
-          {posts.map((post) => (
-            <PostPreview post={post} key={post._id} />
-          ))}
-        </div>
+    <div className="container max-w-6xl pt-6 pb-10">
+      <div className="max-w-3xl">
+        <Link
+          href="/tags"
+          className="mb-6 inline-flex items-center gap-1.5 font-mono text-[11px] tracking-wider text-muted-foreground uppercase transition-colors hover:text-foreground"
+        >
+          <ArrowLeft size={12} aria-hidden="true" />
+          All tags
+        </Link>
+        <PageHeader label="Tag" title={tag} aside={`${posts.length} ${posts.length === 1 ? "post" : "posts"}`} />
+        <PostList posts={posts} />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { defaultFilter } from "cmdk";
 import { File, Laptop, Moon, Sun, type LucideIcon } from "lucide-react";
@@ -16,6 +17,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
+import { BracketLabel, CellFooter } from "@/components/ui/frame";
 import { BrandIcon } from "@/components/brand-icon";
 import type { CommandPost } from "@/components/command-dialog";
 
@@ -41,6 +43,14 @@ function filterItems(value: string, search: string, keywords: string[] = []) {
   return Math.max(defaultFilter(value, search, keywords), 0.01);
 }
 
+function Key({ children }: { children: ReactNode }) {
+  return (
+    <kbd className="mr-1 rounded border border-foreground/10 bg-background px-1 py-px font-mono text-[10px]">
+      {children}
+    </kbd>
+  );
+}
+
 type CommandMenuProps = {
   open: boolean;
   setOpen: (open: boolean) => void;
@@ -62,14 +72,14 @@ export default function CommandMenu({ open, setOpen, posts }: CommandMenuProps) 
       <CommandInput placeholder="Type a command or search..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
-        <CommandGroup heading="Content">
+        <CommandGroup heading={<BracketLabel>Posts</BracketLabel>}>
           {posts.map((post) => (
             <CommandItem
               key={post.slug}
               value={[post.title, ...(post.tags ?? [])].join(" ")}
               onSelect={() => runCommand(() => router.push(`/posts/${post.slug}`))}
             >
-              <File className="mr-2 h-4 w-4 shrink-0" />
+              <File className="mr-2 h-4 w-4 shrink-0 opacity-70" />
               <div className="flex min-w-0 flex-col">
                 <span className="truncate">{post.title}</span>
                 {post.tags?.length ? (
@@ -80,7 +90,7 @@ export default function CommandMenu({ open, setOpen, posts }: CommandMenuProps) 
           ))}
         </CommandGroup>
         <CommandSeparator />
-        <CommandGroup heading="Social">
+        <CommandGroup heading={<BracketLabel>Social</BracketLabel>}>
           {socialCommands.map(({ name, label, link }) => (
             <CommandItem
               key={name}
@@ -92,7 +102,7 @@ export default function CommandMenu({ open, setOpen, posts }: CommandMenuProps) 
           ))}
         </CommandGroup>
         <CommandSeparator />
-        <CommandGroup heading="Theme">
+        <CommandGroup heading={<BracketLabel>Theme</BracketLabel>}>
           {themeCommands.map(({ theme, label, Icon }) => (
             <CommandItem key={theme} onSelect={() => runCommand(() => setTheme(theme))}>
               <Icon className="mr-2 h-4 w-4" />
@@ -101,6 +111,20 @@ export default function CommandMenu({ open, setOpen, posts }: CommandMenuProps) 
           ))}
         </CommandGroup>
       </CommandList>
+      <CellFooter className="flex items-center justify-between gap-3">
+        <span className="flex items-center gap-3">
+          <span>
+            <Key>↑↓</Key> navigate
+          </span>
+          <span>
+            <Key>↵</Key> open
+          </span>
+          <span className="hidden sm:inline">
+            <Key>esc</Key> close
+          </span>
+        </span>
+        <span>{posts.length} posts</span>
+      </CellFooter>
     </CommandDialog>
   );
 }

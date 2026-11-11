@@ -1,6 +1,7 @@
 import { ExternalLink } from "lucide-react";
 
 import { getTool } from "@/lib/tools-registry";
+import { SectionLabel } from "@/components/ui/frame";
 
 export type ToolReferenceData = {
   slug: string;
@@ -25,18 +26,18 @@ export const PostReferencesBox = ({ tools }: Props) => {
   }
 
   return (
-    <section className="mt-14 border-t pt-8" aria-labelledby="tools-and-references">
-      <h2 id="tools-and-references" className="font-heading text-lg font-bold text-foreground">
+    <section className="mt-14" aria-labelledby="tools-and-references">
+      <SectionLabel id="tools-and-references" aside={`${resolved.length}`}>
         Tools and references
-      </h2>
-      <ul className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2">
+      </SectionLabel>
+      <ul className="mt-5 grid gap-x-8 gap-y-4 sm:grid-cols-2">
         {resolved.map((tool) => (
           <li key={tool.url}>
             <a
               href={tool.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[0.95rem] font-medium text-foreground underline decoration-border underline-offset-4 transition-colors hover:decoration-foreground"
+              className="inline-flex items-center gap-1 text-[0.95rem] font-medium text-foreground underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-accent-foreground hover:decoration-accent-foreground"
             >
               {tool.name}
               <ExternalLink size={12} aria-hidden="true" className="text-muted-foreground" />
