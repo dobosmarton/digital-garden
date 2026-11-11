@@ -1,5 +1,5 @@
 ---
-title: "Unlock Document Intelligence: Building a File Q&A App with NextJS, UploadThing, and LlamaIndex"
+title: "Building a File Q&A App with NextJS, UploadThing, and LlamaIndex"
 publishedDate: "2024-09-23"
 lastUpdatedDate: "2024-09-23"
 tags:
@@ -29,16 +29,7 @@ status: published
 
 By the end, we have an application where users can upload and query documents. The uploaded documents are publicly available so all users can access every uploaded document.
 
-**Throughout this article, we cover the following key points:**
-
-- Creating a Next.js project for a Q&A app that enables users to upload and query documents
-- Integrating UploadThing for efficient file handling and storage
-- Implementing Qdrant as a vector database for fast document querying
-- Using OpenAI and LlamaIndex for natural language processing and document indexing
-- Developing a chat API with streaming capabilities for real-time responses
-- Building a simple frontend using Shadcn UI components
-
-This application serves as a foundation for more advanced document analysis and querying systems, offering potential for further customization and feature expansion.
+The files are stored in UploadThing, the embeddings in Qdrant, and LlamaIndex with OpenAI answers the questions. The answers stream to the frontend with the Vercel AI SDK, and the UI is built from Shadcn UI components.
 
 **You can find the code repo for this article [here](https://github.com/dobosmarton/document-qa)**
 
@@ -63,11 +54,11 @@ npx create-next-app@latest
   <figcaption>NextJS cli setup</figcaption>
 </figure>
 
-And that’s it, if you navigate to the created folder, you can see the folders and files that was created by the Next.js cli. Type npm run start and the app is ready on your localhost.
+And that’s it, if you navigate to the created folder, you can see the folders and files that were created by the Next.js cli. Type npm run start and the app is ready on your localhost.
 
 ## Installing UploadThing
 
-[UploadThing](https://uploadthing.com/) is a wrapper around S3 that offers additional features. We’ve chosen it for its seamless [integration with Next.js](https://docs.uploadthing.com/getting-started/appdir) and its simpler setup compared to AWS infrastructure.
+[UploadThing](https://uploadthing.com/) is a wrapper around S3. We’ve chosen it because it has an [integration with Next.js](https://docs.uploadthing.com/getting-started/appdir) and it is simpler to set up than AWS.
 
 ```jsx
 npm install uploadthing @uploadthing/react
@@ -86,7 +77,7 @@ UploadThing is a cloud service, so you need to create an account and generate a 
   <figcaption>UploadThing setup modal</figcaption>
 </figure>
 
-UploadThing has a free plan to start which is completely enough for the goal of this tutorial. Copy your token from the dashboard and create a .env file with these variables.
+UploadThing has a free plan to start which is completely enough for the goal of this tutorial. Copy your token from the dashboard and add it to a .env file.
 
 ## Upload file API route
 
@@ -130,7 +121,7 @@ const config: Config = withUt({
 export default config;
 ```
 
-Then let’s create the upload React component based on the UploadThing Button component. Don’t forget to overwrite the default URL config if your file upload API path is not `api/uploadthing` .
+Then let’s create the upload React component based on the UploadThing Button component. Don’t forget to overwrite the default URL config if your file upload API path is not `api/uploadthing`.
 
 ```jsx
 // components/ui/upload-button.tsx
@@ -227,7 +218,7 @@ export const listFiles = async () => {
 💡 The `listFiles` method must be a server action, you can’t run it from your client components!
 ```
 
-Next, we'll create a React component to call the function and render the list. This server component allows us to fetch and display the list easily. However, it's important to note that we can't add client-side-only functionality like hooks to this component, nor can we nest it within a client component.
+Next, we'll create a React component to call the function and render the list. This is a server component, so we can't add client-side-only functionality like hooks to it, nor can we nest it within a client component.
 
 ```jsx
 // components/file-list.tsx
@@ -250,15 +241,15 @@ export const FileList = async () => {
 };
 ```
 
-Great! We’ve successfully implemented file uploads to storage and created a frontend list of these files. Our next task is to generate vector embeddings from the file content and store them in a vector database. This step enables us to build a [Retrieval-Augmented Generation (RAG)](https://ts.llamaindex.ai/getting_started/concepts) system for our Q&A application.
+Now we can upload files to storage and list them on the frontend. Our next task is to generate vector embeddings from the file content and store them in a vector database. This step enables us to build a [Retrieval-Augmented Generation (RAG)](https://ts.llamaindex.ai/getting_started/concepts) system for our Q&A application.
 
 # Store embeddings in Qdrant
 
-Now let’s set up the necessary accounts and connect the vector store to our application using [LlamaIndex](https://ts.llamaindex.ai/). LlamaIndex is a powerful tool that streamlines file processing, embedding generation, vector storing, and prompting. It abstracts away the complex tasks, allowing us to simply call LlamaIndex functions in the application.
+Now let’s set up the necessary accounts and connect the vector store to our application using [LlamaIndex](https://ts.llamaindex.ai/). LlamaIndex handles the file processing, embedding generation, vector storing, and prompting, so we only call its functions in the application.
 
 ## Creating an OpenAI account
 
-In our example, we use [OpenAI](https://openai.com/) by default. With LlamaIndex you can easily switch to another LLM provider or to a local model to reduce cost or increase privacy. LlamaIndex’s flexibility allows you to integrate various language models, including open-source options or your own fine-tuned models. This adaptability not only helps in managing costs but also enables you to change the system to your specific needs and performance requirements.
+In our example, we use [OpenAI](https://openai.com/) by default. With LlamaIndex you can easily switch to another LLM provider or to a local model to reduce cost or increase privacy.
 
 To use OpenAI, you’ll need to [get an OpenAI API key](https://platform.openai.com/account/api-keys) and then make it available as an environment variable this way:
 
@@ -267,13 +258,13 @@ To use OpenAI, you’ll need to [get an OpenAI API key](https://platform.openai.
 OPENAI_API_KEY = "sk-proj-...";
 ```
 
-LlamaIndex uses [OpanAI by default](https://ts.llamaindex.ai/getting_started/installation#environment-variables), so we don’t need to use this environment variable directly in our code base if we use the OPENAI_API_KEY name as our environment variable.
+LlamaIndex uses [OpenAI by default](https://ts.llamaindex.ai/getting_started/installation#environment-variables), so we don’t need to use this environment variable directly in our code base if we use the OPENAI_API_KEY name as our environment variable.
 
 ## Creating a Qdrant account
 
-> [Qdrant](https://qdrant.tech/documentation/) is an AI-native vector dabatase and a semantic search engine. You can use it to extract meaningful information from unstructured data.
+> [Qdrant](https://qdrant.tech/documentation/) is an AI-native vector database and a semantic search engine. You can use it to extract meaningful information from unstructured data.
 
-Create a new Qdrant cluster and add the generated API key and cluster URL to your .env file, similar to the OpenAI API key before.
+Create a new Qdrant cluster and add the generated API key and cluster URL to your .env file, similar to the OpenAI API key before.
 
 ```jsx
 // .env
@@ -300,11 +291,11 @@ const nextConfig = withLlamaIndex({});
 export default nextConfig;
 ```
 
-In this post, we implement a simplified process: uploading files to UploadThing storage, generating embeddings from these files, and storing them in the Qdrant vector store. We won't dig deeply into error handling or data inconsistency issues here. It's worth noting though, that this implementation could lead to inconsistent states, for instance, if a file uploads successfully to UploadThing but the embedding generation fails. To cover such scenarios, we'd need to develop a process (either automated or semi-automated) to handle these inconsistencies.
+In this post, we implement a simplified process: uploading files to UploadThing storage, generating embeddings from these files, and storing them in the Qdrant vector store. We won't dig deeply into error handling or data inconsistency issues here. This implementation can lead to inconsistent states, for instance, if a file uploads successfully to UploadThing but the embedding generation fails. To cover such scenarios, we'd need a process (either automated or semi-automated) to handle these inconsistencies.
 
-The embedding generation is part of our AI functionality implementations, let’s create a new folder under the `lib` folder.
+The embedding generation is part of our AI functionality, so let’s create a new `ai-engine` folder under the `lib` folder.
 
-The `getDocuments` method load the file from a URL and convert it to `llamaindex` documents.
+The `getDocuments` method loads the file from a URL and converts it to `llamaindex` documents with `PDFReader`.
 
 ```jsx
 // lib/ai-engine/loader.ts
@@ -328,9 +319,9 @@ export const getDocuments = async (fileUrl: string): Promise<Document<Metadata>[
 };
 ```
 
-The `getIndexFromStore` the function loads the vector index from the external `Qdrant` store.
+The `getIndexFromStore` function loads the vector index from the `document-collection` collection in the external `Qdrant` store, with the chunk size and overlap from our config.
 
-> When you import `llamaindex` in a non-Node.js environment (such as React Server Components, Cloudflare Workers, etc.) Some classes are not exported from top-level entry file.
+> When you import `llamaindex` in a non-Node.js environment (such as React Server Components, Cloudflare Workers, etc.) Some classes are not exported from top-level entry file.
 
 So we have to import the `QdrantVectorStore` library directly at the top of the file.
 
@@ -410,7 +401,7 @@ For the chat functionality, we use [Vercel’s AI](https://sdk.vercel.ai/) npm p
 npm install ai
 ```
 
-The chat and vector store-related modules are collected in the `ai-engine` folder, so let's extend the folder with a new file. The exported method converts the vector index to the chat engine using `llamaindex` object methods. The LlamaIndex `asRetriever` method creates a retriever object from the vector index. This retriever is used to fetch relevant documents from the index based on the user's query. The similarityTopK parameter is set to 5, meaning it will retrieve the top 5 most similar documents. The chatEngine is then initialized with this retriever and the provided chat history, enabling contextual responses to user queries.
+The chat and vector store-related modules are collected in the `ai-engine` folder, so let's extend the folder with a new file. The exported method converts the vector index to a chat engine. The LlamaIndex `asRetriever` method creates a retriever from the vector index, which fetches the 5 most similar documents for each question (`similarityTopK: 5`). The `ContextChatEngine` gets this retriever and the chat history.
 
 ```jsx
 // lib/ai-engine/chat.ts
@@ -468,9 +459,7 @@ export const bodySchema = z.object({
 export type Message = z.infer<typeof messageSchema>;
 ```
 
-Let's update the route file with schema validation and integrate the chat engine module we implemented earlier. The message array contains all messages in the given thread, which we provide to the engine as history, except for the last user's most recent message.
-
-This approach ensures the chat engine has the context to provide relevant and coherent responses. After processing the messages, we can use the chat engine to generate a response based on the user’s latest query. The chat engine uses the vector index we created earlier, which contains embeddings of the uploaded documents, allowing it to provide informed answers from the stored knowledge base.
+Let's update the route file with schema validation and integrate the chat engine module we implemented earlier. The message array contains all messages in the given thread, which we provide to the engine as history, except for the last one, which is the user's latest question. If the last message is not from the user, the route returns a 400 error.
 
 ```jsx
 // app/api/chat/route.ts
@@ -596,7 +585,7 @@ const chat = async (request: NextRequest) => {
 ...
 ```
 
-We're now ready to use our chat API. With our chat engine built on the vector index containing uploaded document embeddings, the chat can respond using information from these documents. You can test the chat API using [Postman](https://www.postman.com/) — simply send a message, and you'll receive the response as a stream.
+We're now ready to use our chat API. You can test it using [Postman](https://www.postman.com/): send a message, and you'll receive the response as a stream.
 
 <figure align="center">
   <div style={{ display: "flex", justifyContent: "center" }}>
@@ -619,9 +608,7 @@ npx shadcn@latest init
 npx shadcn@latest add button input
 ```
 
-The chat components are quite straightforward, we need a layout to show the messages and we need an input field to add new messages. To achieve the seamless integration with our backend, we use the `useChat` hook of the `ai` library.
-
-This hook provides an easy way to manage the chat state and handle interactions with the backend API. It takes care of sending messages, receiving responses, and updating the UI accordingly. By using the `useChat` hook, we can easily implement real-time chat functionality without having to manually manage the state and API calls.
+The chat components are quite straightforward, we need a layout to show the messages and we need an input field to add new messages. To connect them to our backend, we use the `useChat` hook of the `ai` library. It keeps the chat state (`messages`, `input`, `isLoading`), sends the messages to the chat API, and updates the UI as the response streams in, so we don't have to manage the state and the API calls ourselves.
 
 ```jsx
 // components/chat.tsx
@@ -690,7 +677,7 @@ export const ChatInput: React.FC<Props> = (props) => (
 );
 ```
 
-The `ChatMessages` component renders the messages array in `Markdown` fields to expose the styling of the response messages.
+The `ChatMessages` component renders the messages array in `Markdown` fields to expose the styling of the response messages. It scrolls to the bottom when a new message arrives and shows a spinner until the first chunk of the answer comes back.
 
 ```jsx
 // components/ui/chat-messages.tsx
@@ -755,4 +742,6 @@ Now we have everything to start our basic chat application, upload files, and as
 
 # Final thoughts
 
-In this article, we’ve explored the process of building a file Q&A AI application using **NextJS**, **UploadThing**, **LlamaIndex**, and **Qdrant**. We’ve covered the essential steps from setting up the project to implementing the chat functionality, both on the backend and front end. This application demonstrates the power of combining modern web technologies with AI capabilities to create a secure and efficient document querying system. As we move forward, numerous possibilities exist for extending and enhancing this application, such as improving the UI, adding more advanced search features, or integrating with other AI models.
+{/* TODO(Marton): one sentence only you can write. What would you change first, e.g. the uploaded documents being public to every user, or the inconsistent state when the upload succeeds but the embedding fails? Or what the OpenAI embedding cost turned out to be. This comment doesn't render. */}
+
+You can find the full code on [GitHub](https://github.com/dobosmarton/document-qa).

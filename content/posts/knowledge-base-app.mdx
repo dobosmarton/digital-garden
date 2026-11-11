@@ -26,9 +26,9 @@ tools:
 status: published
 ---
 
-RAG stands for Retrieval-Augmented Generation, a technique that combines information retrieval with language generation. It enhances AI models by allowing them to access and incorporate external knowledge when generating responses, improving accuracy and relevance. In our context, RAG enables the app to retrieve relevant information from uploaded documents to answer user queries.
+In this article, we build a small API where you can upload documents and ask questions about them. It uses RAG (Retrieval-Augmented Generation): the app retrieves the relevant parts of the uploaded documents and passes them to the language model together with the question.
 
-This approach not only enhances the AI’s ability to provide accurate and contextually relevant answers but also allows for a more dynamic and interactive user experience. By using RAG, our application can effectively bridge the gap between the vast amount of information contained in uploaded documents and the specific queries posed by users, resulting in a more intelligent and responsive knowledge base system.
+The backend is a FastAPI app. Uploaded files go to Minio, the embeddings to ChromaDB, and LlamaIndex connects the pieces.
 
 **You can find the code repo for this article here:**
 
@@ -38,7 +38,7 @@ This approach not only enhances the AI’s ability to provide accurate and conte
 
 You need to have installed Python and Poetry on your machine.
 
-[Poetry](https://python-poetry.org/) is a dependency management and packaging tool for Python that simplifies the process of creating and managing Python projects. It allows developers to declare and manage project dependencies, using a `pyproject.toml` file. Poetry handles virtual environments automatically, ensuring that dependencies are isolated and consistent across different environments.
+[Poetry](https://python-poetry.org/) manages the dependencies (declared in `pyproject.toml`) and the virtual environment.
 
 You also need an [OpenAI account to generate an API key](https://platform.openai.com/docs/quickstart/create-and-export-an-api-key). When you have that, create a .env file based on the .env.example and paste the key there. The Minio bucket name and keys can be generated once you start Minio based on the docker-compose file in the next section.
 
@@ -46,7 +46,7 @@ You also need an [OpenAI account to generate an API key](https://platform.openai
 
 This is a local setup so I added a docker-compose file to run the necessary components locally. The project uses Minio to store the uploaded files and [ChromaDB](https://www.trychroma.com/) to store embeddings and indexes. For ChromaDB we use server mode, enabling us to communicate with the DB via HTTP requests.
 
-This setup allows for efficient storage and retrieval of both raw documents and their vector representations. The docker-compose file defines the services for ChromaDB and Minio, specifying the necessary configurations for each. ChromaDB is exposed on port 8000, while Minio uses ports 9000 and 9001. Both services are configured with persistent storage volumes to ensure data retention across container restarts.
+ChromaDB is exposed on port 8000, Minio uses ports 9000 and 9001 and creates a `datasource` bucket on start. Both services have a persistent volume, so the data survives container restarts.
 
 ```yaml showLineNumbers title="docker-compose.yml"
 services:
@@ -95,29 +95,24 @@ Now you need only two more commands to start the app locally.
 
 ```bash
 poetry shell
-uvicorn document_rag:app — reload
+uvicorn document_rag:app --reload
 ```
 
 You can use the reload flag if you want to modify the code, so the app will reload every time you change something in the codebase. If you see these messages in your terminal then everything is fine, you can use the API to upload some documents.
 
 <figure align="center">
   <div style={{ display: "flex", justifyContent: "center" }}>
-    <Image
-      alt="Trigger.dev creating a new project"
-      src="/content/knowledge-base/app-start.png"
-      width={480}
-      height={480}
-    />
+    <Image alt="App starting in the terminal" src="/content/knowledge-base/app-start.png" width={480} height={480} />
   </div>
   <figcaption>App starts in the terminal</figcaption>
 </figure>
 
-The easiest way to test the API is using Curl, Postman, or something similar tool.
+The easiest way to test the API is using Curl, Postman, or a similar tool.
 
 <figure align="center">
   <div style={{ display: "flex", justifyContent: "center" }}>
     <Image
-      alt="Trigger.dev creating a new project"
+      alt="Upload file endpoint in Postman"
       src="/content/knowledge-base/uploadfile.png"
       width={480}
       height={480}
@@ -126,12 +121,12 @@ The easiest way to test the API is using Curl, Postman, or something similar too
   <figcaption>Upload file endpoint in Postman</figcaption>
 </figure>
 
-You can validate the result by opening the Minio web interface and checking the uploaded file in the right bucket. After a successful file upload, you can finally unlock the model’s intelligence and ask questions.
+You can validate the result by opening the Minio web interface and checking the uploaded file in the right bucket. After a successful file upload, you can ask questions on the `/conversation` endpoint.
 
 <figure align="center">
   <div style={{ display: "flex", justifyContent: "center" }}>
     <Image
-      alt="Trigger.dev creating a new project"
+      alt="Conversation endpoint in Postman"
       src="/content/knowledge-base/conversation.png"
       width={480}
       height={480}
@@ -146,12 +141,7 @@ Let’s review some parts of the code base to understand how the app works.
 
 <figure align="center">
   <div style={{ display: "flex", justifyContent: "center" }}>
-    <Image
-      alt="Trigger.dev creating a new project"
-      src="/content/knowledge-base/folders.png"
-      width={480}
-      height={480}
-    />
+    <Image alt="Project folder structure" src="/content/knowledge-base/folders.png" width={480} height={480} />
   </div>
   <figcaption>Project folder structure</figcaption>
 </figure>
@@ -160,7 +150,7 @@ The project has a simple flat file structure. This is a simple app, we don’t w
 
 ## API handlers
 
-The `main.py` file stores the FastAPI routes and a document index context. It is dependable that we can inject into our routes to provide access to the document index.
+The `main.py` file stores the FastAPI routes and a document index context. It is a dependency that we can inject into our routes to provide access to the document index.
 
 ```python showLineNumbers title="main.py"
 def get_document_index_context():
@@ -191,8 +181,6 @@ The document index is a VectorStoreIndex from [LlamaIndex](https://docs.llamaind
 > Vector Stores are a key component of retrieval-augmented generation (RAG) and so you will end up using them in nearly every application you make using LlamaIndex, either directly or indirectly.
 
 This is the heart of our AI application. We add the uploaded file data to the index and we use it to retrieve the answers to the questions coming from the conversation requests.
-
-The index serves as a powerful tool for efficiently retrieving relevant information from the uploaded documents. By using the vector representations of the text, we can perform semantic searches that go beyond simple keyword matching. This allows our application to understand the context and meaning behind user queries, resulting in more accurate and insightful responses.
 
 ## Document and Vector stores
 
@@ -233,7 +221,7 @@ def upload_file(file: UploadFile, object_name: str) -> ObjectWriteResult:
 
 Transforming the text files to embedding vectors is a key part of a RAG application. We store these vectors in ChromaDB, an open-source vector database.
 
-[ChromaDB](https://www.trychroma.com/) is designed to store and query vector embeddings, making it an ideal choice for our RAG application. By using ChromaDB, we can efficiently store and retrieve the vector representations of our documents, enabling fast and accurate semantic searches. This allows our application to quickly find the most relevant information when responding to user queries, significantly enhancing the overall performance and user experience.
+The app talks to ChromaDB over HTTP (`chromadb.HttpClient`) and keeps every document in one `documents` collection. The vector store is created once and reused as a singleton.
 
 ```python showLineNumbers title="vector_store.py"
 chroma_host = os.getenv("CHROMA_HOST")
@@ -267,7 +255,7 @@ def get_vector_store_singleton() -> VectorStore:
 
 The storage context is a LlamaIndex utility container for storing nodes, indices, and vectors. Using storage context makes it easier to run queries against the ML model. We persist the context in our S3-compatible Minio storage.
 
-This allows us to efficiently retrieve and update the stored information as needed. The storage context plays a crucial role in maintaining the persistence of our document index across different sessions, ensuring that we can quickly access and utilize previously processed data without having to rebuild the entire index from scratch.
+On the first run there is no persisted context in Minio yet, so `from_defaults` raises a `ValueError`. In that case we create a new storage context and persist it right away.
 
 ```python showLineNumbers title="storage_context.py"
 def get_or_create_storage_context(
@@ -288,11 +276,11 @@ def get_or_create_storage_context(
 
 ## Document index
 
-As the last part of the application, let’s review the index generation and index manipulation logic. The `get_document_index` function retrieves or creates a VectorStoreIndex, which is the core component for storing and querying our document embeddings. It uses the storage context and vector store we set up earlier.
+As the last part of the application, let’s review the index generation and index manipulation logic. The `get_document_index` function retrieves or creates a VectorStoreIndex from the storage context and vector store we set up earlier. The embeddings come from a local Hugging Face model, `BAAI/bge-base-en-v1.5`, not from the OpenAI embedding API.
 
-The `add_document` function is responsible for processing new documents and adding them to our index. It reads the document from our S3-compatible storage, parses it into nodes, and inserts these nodes into the index.
+The `add_document` function reads the document from our S3-compatible storage with `SimpleDirectoryReader`, parses it into nodes with `SimpleFileNodeParser`, and inserts these nodes into the index.
 
-Finally, the `query` function allows us to perform searches against our indexed documents, using the power of the VectorStoreIndex to find relevant information based on the user's query.
+Finally, the `query` function sends the question to the index's query engine (`as_query_engine()`) and returns the response text.
 
 ```python showLineNumbers title="document_index.py"
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -336,4 +324,6 @@ def query(
 
 # Final thoughts
 
-This simple RAG application demonstrates the power of combining document storage, vector embeddings, and natural language processing to create a question-answering system. By using tools like LlamaIndex, ChromaDB, and Minio, we’ve built a flexible solution that can be easily adapted for various use cases. You can easily extend the general knowledge base with your private documents without publishing sensitive data online. As AI technologies continue to evolve, applications like this will become increasingly valuable for extracting insights from large volumes of unstructured data.
+{/* TODO(Marton): one sentence only you can write. What did you actually upload and how good were the answers (e.g. did the local bge-base-en-v1.5 embeddings find the right parts), or did you ever move it from Minio to S3? This comment doesn't render. */}
+
+You can extend the general knowledge base with your private documents without publishing sensitive data online.

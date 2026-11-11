@@ -28,10 +28,11 @@ status: published
 
 But what is an asynchronous workflow and why is it useful? Usually, even in smaller applications, certain events or tasks should happen asynchronously. There are several reasons to do so,
 
-- **Application responsiveness**: unresponsive UI makes the user experience terrible. There could be actions that should be initialized by the client and take a significant amount of time to proceed. Asynchronous workflows can take the heavy lifting and make the main application responsive during the time-consuming processing.
-- **Fault tolerance**: with asynchronous workflows, if one component of the application fails, the main part of the application can still operate. Also, retries can help to rerun the failed components unaffected by the main part of the application.
-- **Scalability**: asynchronous workflows can reduce the load of the main application, especially in cases when a workflow task performs resource-intensive calculations.
-- **Separation of Concerns:** The main application can focus on handling user interactions and requests, while the asynchronous workflows handle the processing of background tasks, such as sending emails, generating reports, or updating data.
+- the UI stays responsive while a long task runs in the background,
+- if a background task fails, the main application still works, and the task can be retried,
+- heavy work doesn't load the main application.
+
+In our app, the background task is publishing a tweet at the scheduled time. Trigger.dev runs it on a cron schedule, outside the Next.js app.
 
 ## Project setup
 
@@ -182,7 +183,7 @@ npm install zod zod-form-data
 
 #### Shadcn/ui
 
-[Shadcn/ui](https://ui.shadcn.com/) is a beautifully designed clean component library that you can copy and paste into your apps. We use the components and layouts to build a basic UI for our scheduler app.
+[Shadcn/ui](https://ui.shadcn.com/) is a component library that you can copy and paste into your apps. We use the components and layouts to build a basic UI for our scheduler app.
 
 ```bash
 npx shadcn-ui@latest init
@@ -1229,13 +1230,13 @@ We now have the first working version of the app. You can log in with the X acco
 
 #### Account setup
 
-OpenAI is a company specializing in AI research and deployment. It offers a user-friendly API and official SDK libraries for easy integration. In this tutorial, we'll be using the [official TypeScript library](https://github.com/openai/openai-node).
+OpenAI has official SDK libraries for its API. In this tutorial, we'll be using the [official TypeScript library](https://github.com/openai/openai-node).
 
 ```bash
 npm install openai
 ```
 
-To use the OpenAI API with Trigger.dev, you’ll need an API Key from OpenAI. If you don’t have one yet, you can obtain it from the [**OpenAI dashboard**](https://platform.openai.com/api-keys).
+To use the OpenAI API with Trigger.dev, you’ll need an API Key from OpenAI. If you don’t have one yet, you can obtain it from the [**OpenAI dashboard**](https://platform.openai.com/api-keys).
 
 <figure align="center">
   <div style={{ display: "flex", justifyContent: "center" }}>
@@ -1342,4 +1343,8 @@ Excited to share a new blog post covering an app tutorial on Next.js and Trigger
 
 ## Final thoughts
 
-The article outlines how to build asynchronous workflows with Next.js, trigger.dev v3, X API, and OpenAI. It discusses creating a task scheduler for tweets, handling authentication tokens, and validating schedules. It also explains how to store tokens in Redis, schedule tweets, and handle errors. The document further details how to build a user interface for scheduling tweets, including creating selectors for days, hours, and minutes. It also covers integrating OpenAI for generating tweet messages based on keywords and previous tweets.
+The finished app logs in with X over OAuth 2.0, saves the keywords, the user token and the last five tweets in Upstash Redis, and creates a trigger.dev schedule from the selected day and time. When the cron fires, the task refreshes the token if it expired, asks gpt-3.5-turbo for a tweet and posts it. The source code is on [GitHub](https://github.com/dobosmarton/tweet-scheduler).
+
+Two shortcuts to keep in mind for a production app: saving the tweet and creating the schedule don't run in a transaction, and the user token is kept in Redis only for simplicity.
+
+{/* TODO(Marton): add a sentence from real use, e.g. how the generated tweets turned out (like the #WrittenbyAI one above) or anything in the trigger.dev v3 developer preview that broke or surprised you. */}

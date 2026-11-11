@@ -7,7 +7,7 @@ tags:
   - react native
   - ethereum
   - web3
-description: "A crypto wallets is the main part of sending crypto tokens from one person to another. In this article, we are going to build one with React Native."
+description: "A crypto wallet is the main part of sending crypto tokens from one person to another. In this article, we are going to build one with React Native."
 tools:
   - slug: react-native-bip39
     note: "BIP39 mnemonic generation the custom solution is based on"
@@ -48,8 +48,7 @@ Based on all this, let’s see how the user journey of creating a wallet looks l
 
 - The user **navigates to the wallet creation** screen
 - **Generating random 12 words.** We don’t just pick random 12 words to use as an initial seed for the private key. Randomly selected 12 words are not going to work because the seed phrase must follow a specific format to be compatible with most cryptocurrency wallets.
-  Specifically, the seed phrase must be generated using a word list called [BIP39](https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt), which consists of 2048 words that were specifically selected for their uniqueness and ease of recall. Using a random selection of words that do not follow the BIP39 word list could lead to issues with compatibility and potential security vulnerabilities.
-  Additionally, generating a seed phrase using a true random number generator is important to ensure that the private keys generated from the seed phrase are secure and not predictable.
+  The words have to come from the [BIP39](https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt) word list, which has 2048 words. The app picks them with a secure random number generator (`generateSecureRandom`), so the keys generated from the phrase are not predictable.
 - Adding an **extra passphrase**. As the next step, the user must add a unique passphrase. The app will use this extra word as salt during the private key generation. This step makes the generation more secure because this step makes the generated keys unique even if the randomly generated mnemonic phrase is the same.
 - The **key is generated**, and the user can use it to sign transactions on the Ethereum blockchain.
 
@@ -87,7 +86,7 @@ Some aspects are less important than others and I want to focus on the key thing
 
 ### Infura
 
-Infura helps Web3 developers build world-class applications on blockchain infrastructure. We will use it to connect the mobile application to the Ethereum network.
+Infura is the RPC provider we will use to connect the mobile application to the Ethereum network (the Goerli test network in the `.env` example below).
 [Here](https://docs.infura.io/infura/getting-started) is the official guide to creating an account and a project. In general, storing private and access keys in the git repository is a bad practice, we will use environment variables.
 After installing the `react-native-dotenv` library, we have to update the `babel.config.js` file.
 

@@ -23,7 +23,7 @@ tools:
 status: published
 ---
 
-I'm building an AI agent that plays Age of Empires II, a real-time strategy game. The agent has no access to the game's internal state. It only sees the screen, like a human player. On every turn, an object detector processes the screenshot and returns the visible objects with their class and position: villagers, animals, resources, buildings and military units. The agent plans its next action from that list.
+I'm building an AI agent that plays Age of Empires II, a real-time strategy game. The agent has no access to the game's internal state; it only sees the screen, like a human player. On every turn, an object detector processes the screenshot and returns the visible objects with their class and position: villagers, animals, resources, buildings and military units. The agent plans its next action from that list.
 
 This post is only about training that detector. It addresses a common question for small datasets: **how much does synthetic training data help, and how is it best used?**
 
@@ -95,7 +95,7 @@ The model is **YOLO26n** from Ultralytics: a 2.6M-parameter detector, pretrained
 
 It learns 65 classes: trees, gold and stone mines, berry bushes, animals, buildings, villagers and military units. The screenshots are 3024×1672 and the model sees them at 1280 pixels wide, so a villager is ~14 pixels tall at the model input. This small object size is the main constraint behind the input resolution and several of the training choices below.
 
-The real data is 264 screenshots with 11,842 boxes. Villagers, trees and houses make up half of the boxes. Some classes, like kings or trebuchets, have no real example at all and only exist in the synthetic data.
+The real data is 264 screenshots with 11,842 boxes, and villagers, trees and houses make up half of them. Some classes, like kings or trebuchets, have no real example at all and only exist in the synthetic data.
 
 ## How I compared the runs
 
@@ -137,7 +137,7 @@ Augmentation is close to the Ultralytics defaults, with two choices specific to 
 | MixUp           | 0.1                             |                                                  |
 | Colour (HSV)    | 0.015 / 0.7 / 0.4               | player colours and fog change hue and brightness |
 
-The hardware is one RTX 4090 (24 GB) per run, rented on RunPod. Images are cached in RAM to keep the GPU busy. An epoch takes 20–90 seconds depending on the dataset and model size, so a run takes 45 minutes to 4 hours. I ran up to three at once, one per pod.
+The hardware is one RTX 4090 (24 GB) per run, rented on RunPod, with images cached in RAM to keep the GPU busy. An epoch takes 20–90 seconds depending on the dataset and model size, so a run takes 45 minutes to 4 hours. I ran up to three at once, one per pod.
 
 <Figure
   src="/content/real-vs-synthetic-training-data/runpod-three-runs-training.png"
@@ -264,7 +264,7 @@ The next round combined both sources: the old images for trees and mines, and th
 | **D** | E + 1,000 composites      | YOLO26n     |    16 | 3.45 h | **0.867** | +0.021, p = 0.010 |
 | E-s   | baseline data, ibex fixed | YOLO26**s** |     8 | 3.72 h |     0.859 | +0.014, p = 0.096 |
 
-The label fix alone changed nothing (E equals the baseline). Adding the composites gave the best model so far. The bigger YOLO26s model on the old data didn't beat the small model on the better data. E-s used batch 8 to fit in memory, but Ultralytics accumulates gradients to the same nominal batch of 64, so the update size stays the same.
+The label fix alone changed nothing (E equals the baseline), while adding the composites gave the best model so far. The bigger YOLO26s model on the old data didn't beat the small model on the better data. E-s used batch 8 to fit in memory, but Ultralytics accumulates gradients to the same nominal batch of 64, so the update size stays the same.
 
 D detected fewer gold mines: 46 of 71, against 56 for E (p = 0.016).
 
@@ -298,7 +298,7 @@ if optimizer == "auto":
         name, lr0 = "AdamW", round(0.002 * 5 / (4 + num_classes), 6)  # 0.000145 for 65 classes
 ```
 
-E has 3,456 images per epoch: 54 × 150 = 8,100 iterations, so AdamW. D has 4,456: 70 × 150 = 10,500, so MuSGD with a 70× higher learning rate. The limit is at ~4,225 images. D was the only run that crossed it. Every other run in this post, including all of Round 1, trained with AdamW at 0.000145.
+E has 3,456 images per epoch: 54 × 150 = 8,100 iterations, so AdamW. D has 4,456: 70 × 150 = 10,500, so MuSGD with a 70× higher learning rate. The limit is at ~4,225 images, and D was the only run that crossed it. Every other run in this post, including all of Round 1, trained with AdamW at 0.000145.
 
 As a result, the comparison between D and E changed two variables at once. All runs also used seed 0, so the run-to-run variance was unknown.
 

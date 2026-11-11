@@ -7,7 +7,7 @@ tags:
   - react native
   - ethereum
   - web3
-description: "Supporting multiple currencies in our wallet app is crucial feature. In this article, we are going to extend the app functionality to support the Polygon network."
+description: "Supporting multiple currencies in our wallet app is a crucial feature. In this article, we are going to extend the app functionality to support the Polygon network."
 tools:
   - slug: web3js
     note: "web3LibBuilder pattern serving both Ethereum and Polygon RPC"
@@ -39,11 +39,7 @@ First, let's see the technical overview of this functionality.
 
 ### Polygon
 
-[Polygon](https://polygon.technology/), formerly known as Matic Network, is a layer 2 scaling solution for Ethereum.
-It aims to address some of the limitations of Ethereum, such as high fees and slow transaction speeds, by providing a more efficient and scalable infrastructure for decentralized applications (dApps) and blockchain projects.
-
-Polygon uses a combination of technologies, including Plasma chains, sidechains, and a Proof-of-Stake (PoS) consensus mechanism, to provide fast and secure transactions at a low cost.
-By offloading some of the network traffic from the Ethereum mainnet to the Polygon network, dApps can benefit from higher throughput and faster confirmations, while users can enjoy lower gas fees.
+[Polygon](https://polygon.technology/), formerly known as Matic Network, is a layer 2 scaling solution for Ethereum, with lower gas fees and faster transactions than the Ethereum mainnet.
 
 Adding a Polygon address to the wallet will enable us to test the transactions much faster.
 Another reason we choose Polygon is the address and private key generation method is the same as we used for Ethereum addresses, so we can reuse the big part of the created code and functionalities.

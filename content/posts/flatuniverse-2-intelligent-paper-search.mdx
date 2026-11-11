@@ -7,8 +7,8 @@ tags:
   - nextjs
   - llamaindex
   - pinecone
-  - opanai
-description: "This article explains how Flatuniverse implements time-aware AI responses for research paper chat. It covers the technical implementation of temporal analysis in queries⁠⁠, the process of finding and ranking relevant research papers based on both content and temporal relevance⁠, and how the system generates context-aware chat responses⁠⁠. The article ends by explaining how responses are streamed to the frontend in real-time for better user experience⁠⁠."
+  - openai
+description: "How the Flatuniverse chat answers time-sensitive questions about research papers: an LLM spots time references in the question, Pinecone filters by publication date, and results are reranked by recency."
 tools:
   - slug: pinecone
     note: "FilterOperator.GTE/LTE on publish dates → time-aware search"
@@ -24,55 +24,51 @@ series:
   title: "Building the Flatuniverse app"
 ---
 
-This article continous exploring the [Flatuniverse app](https://flatuniverse.app/), more specifically its AI chat feature. The previous article discovered how the app downloads research papers day-to-day from arXiv, and what kind of processing steps are applied to the articles before we save it to the databases. If you missed that part, [here](https://www.martondobos.com/posts/flatuniverse-paper-processing) you can read more about the topic.
+This article continues exploring the [Flatuniverse app](https://flatuniverse.app/), more specifically its AI chat feature. The previous article discovered how the app downloads research papers day-to-day from arXiv, and what kind of processing steps are applied to the articles before we save them to the databases. If you missed that part, [here](/posts/flatuniverse-1-paper-processing) you can read more about the topic.
 
-Flatuniverse chat feature allows the users to ask questions about research papers to understand the complex and academic theories faster. In this article, we will dig deeper the applied technologies and solutions.
+Flatuniverse chat feature allows the users to ask questions about research papers to understand the complex and academic theories faster. In this article, we will dig deeper into the applied technologies and solutions.
 
-The chat feature not only understands the content of the papers in a semantic way, but it also takes into account the temporal aspects of research, providing users with the most up-to-date and relevant information based on publication dates. This time-aware approach ensures that users can track the evolution of ideas and stay current with the latest developments in their field of interest.
+What makes it different from a plain RAG chat is time: it notices when a question is about a period ("papers from last year") and filters by publication date.
 
 # Overview
 
-The chat feature is built on top of OpenAI's model. When a user asks a question, the system first retrieves the relevant sections using semantic search powered by vector embeddings and temporal metadata to provide comprehensive context about each paper's content and publication timeline. This context is then fed into the AI model along with the user's query to generate accurate, contextual responses.
-
-The system combines two methods to answer questions: first, it finds relevant information from research papers, and then it uses AI to create responses. This approach helps make sure answers are accurate because they're based on curated research papers. Instead of just relying on what the AI already knows, it can point to specific research papers. This also helps prevent the AI from making up information since it can only use facts from the actual papers. Now, let's look at how each part of this system works.
+The chat runs on OpenAI's GPT-4o mini. When a user asks a question, the system finds the relevant paper sections in Pinecone (limited to a date range when the question needs it) and passes them to the model together with the question.
 
 ## RAG
 
-RAG (Retrieval-Augmented Generation) is a powerful approach that combines the benefits of large language models with precise information retrieval. In our implementation, when a user asks a question about a research paper, the system first searches through our vector database to find the most relevant passages from the paper. These retrieved passages serve as context for the AI model, ensuring that its responses uses the actual content of the paper rather than general knowledge.
+In our RAG (Retrieval-Augmented Generation) implementation, when a user asks a question about a research paper, the system first searches through our vector database to find the most relevant passages from the paper. These retrieved passages serve as context for the AI model, ensuring that its responses use the actual content of the paper rather than general knowledge.
 
 If you are interested in learning more about RAG and how it works under the hood, I recommend checking out the [Pinecone documentation](https://www.pinecone.io/learn/retrieval-augmented-generation/) where you can find detailed explanations.
 
 ## Tools
 
-The tech stack behind Flatuniverse's chat feature comprises several key components. Pinecone serves as our vector database for efficient similarity search, while OpenAI's GPT models power the natural language understanding and response generation. The integration between these tools is orchestrated through a Node.js backend with LlamaIndexTS and Vercel’s AI SDK, ensuring smooth data flow and real-time responses.
-
 ### Pinecone
 
-[Pinecone](https://www.pinecone.io/) serves as the vector database backbone of our system, storing and managing the embeddings of research paper content. Its high-performance similarity search capabilities allow us to quickly retrieve the most relevant passages when a user asks a question. In Pinecone we store only the text embeddings, metadataId, page and publishing informations from the papers. The embeddings are generated using OpenAI's text-embedding-3-small model, which creates high-dimensional vectors that capture the semantic meaning of the text.
+[Pinecone](https://www.pinecone.io/) stores the embeddings of the paper content. In Pinecone we store only the text embeddings, metadataId, page and publishing information from the papers. The embeddings are generated using OpenAI's text-embedding-3-small model.
 
-The publishing information is quite important for adding time as a component to our chat functionality. This temporal information helps us implement time-based filtering and relevance scoring in our search algorithms. When users search for papers or ask questions, we can prioritize more recent publications or filter results based on specific time periods, making the chat responses more temporally relevant and accurate.
+The publishing information is quite important for adding time as a component to our chat functionality. Every vector carries a `timestamp`, so a search can be limited to a date range with `FilterOperator.GTE` and `LTE`.
 
-### OpanAI
+### OpenAI
 
-[OpenAI's](https://openai.com/) language models form the core of our chat functionality, enabling natural and contextually aware interactions. We uses the GPT-4o mini model for processing user queries and generating responses, ensuring quality answers that are rooted in the research paper content.
+We use [OpenAI's](https://openai.com/) GPT-4o mini twice per question: once to check the question for time references, and once to write the answer.
 
-### LlamaIndexTs
+### LlamaIndexTS
 
-[LlamaIndexTS](https://ts.llamaindex.ai/) is a TypeScript-based framework that serves as the bridge between our various components. It provides structured ways to handle document loading, chunking, and indexing while offering seamless integration with both our vector store (Pinecone) and language model (OpenAI). This framework simplifies the complexity of managing the RAG pipeline, making it easier to maintain and extend our chat functionality.
+[LlamaIndexTS](https://ts.llamaindex.ai/) is a TypeScript framework for RAG apps. We use it for retrieval from Pinecone and for the streaming chat engine.
 
 ### Vercel AI SDK
 
-The [Vercel AI SDK](https://sdk.vercel.ai/) provides tools for building AI-powered streaming text and chat UIs in our Next.js application. It offers built-in support for handling streaming responses, managing chat state, and implementing real-time UI updates. We use this SDK to send the responses from the AI model to the frontend in a streaming fashion. This allows for real-time display of AI-generated text as it's being produced, creating a more responsive and engaging user experience.
+We use the [Vercel AI SDK](https://sdk.vercel.ai/) to send the responses from the AI model to the frontend in a streaming fashion.
 
 # Interacting with the Knowledge Base
 
-When users interact with the chat interface, they can ask questions about specific papers or explore broader topics across multiple papers. The system processes these queries by first identifying the most relevant paper sections through semantic search, then providing AI-generated responses that synthesize the information. In this section we will review the process of retrieving the information and generating responses based on that context.
+In this section we will review the process of retrieving the information and generating responses based on that context.
 
-1. [Chat input prompt from the frontend](flatuniverse-intelligent-paper-search#chat-input-prompt-from-the-frontend)
-2. [Temporal analysis of the query](flatuniverse-intelligent-paper-search#temporal-analysis-of-the-prompt)
-3. [Research paper retrieval based on chat history and temporal analysis](flatuniverse-intelligent-paper-search#find-research-papers-based-on-the-chat-history-and-the-temporal-analysis)
-4. [Response generation using provided context](flatuniverse-intelligent-paper-search#chat-response-based-on-the-provided-context)
-5. [Streaming of answers and suggestions to the frontend](flatuniverse-intelligent-paper-search#streaming-of-answers-and-suggestions-to-the-frontend)
+1. [Chat input prompt from the frontend](#chat-input-prompt-from-the-frontend)
+2. [Temporal analysis of the query](#temporal-analysis-of-the-prompt)
+3. [Research paper retrieval based on chat history and temporal analysis](#find-research-papers-based-on-the-chat-history-and-the-temporal-analysis)
+4. [Response generation using provided context](#chat-response-based-on-the-provided-context)
+5. [Streaming of answers and suggestions to the frontend](#streaming-of-answers-and-suggestions-to-the-frontend)
 
 ## Chat input prompt from the frontend
 
@@ -92,7 +88,7 @@ const chatCompletion: NextRouteFunction<Params> = async (req, { params }) => {
 
 ## Temporal analysis of the prompt
 
-The temporal analysis component examines the user's query to identify any time-related constraints or preferences. This step is crucial for filtering research papers based on publication dates, ensuring that users receive the most relevant and up-to-date information. The system uses natural language processing to extract temporal references (e.g., "papers from the last 2 years" or "recent developments") and converts them into specific date ranges for the search query. The analysis returns a few specific temporal parameter that we can use during the retrieval.
+The temporal analysis examines the user's query to identify any time-related constraints. A short GPT-4o mini call extracts time references (e.g., "papers from the last 2 years" or "recent developments") and converts them into specific date ranges for the search query. The analysis returns a few specific temporal parameters that we can use during the retrieval.
 
 - **isTemporalQuery**: A boolean flag indicating whether the user's query contains any time-related references that require temporal filtering
 - **timeFrame**: An object containing the start and end dates extracted from the query
@@ -145,7 +141,7 @@ export const _analyzeTemporalQuery = async (query: string): Promise<TemporalQuer
 
 ## Find research papers based on the chat history and the temporal analysis
 
-After the temporal analysis, the system uses result information along with the chat history to perform a targeted search in our vector database. The search query is extended with temporal filters when applicable, ensuring that the retrieved papers match both the semantic content of the query and any time-related constraints. This retrieval process uses Pinecone's metadata filtering capabilities combined with semantic similarity search to find the most relevant paper sections.
+The search uses the analysis result and the chat history. Two details from the code below: for time-based questions it fetches twice as many candidates (`topK × 2`), so the reranking step has something to choose from; and every search, temporal or not, is capped at today with a `timestamp ≤ now` filter.
 
 ```typescript
 export const findRelevantDocuments = async (
@@ -208,9 +204,9 @@ export const findRelevantDocuments = async (
 };
 ```
 
-After retrieving the relevant documents, the system processes them to ensure they are properly formatted and ranked according to their relevance. The retrieved nodes are transformed into DocumentSuggestion objects, which contain not only the text content but also metadata like publication dates and relevance scores. This structured format makes it easier to present the information to the chat engine in the next step.
+The retrieved nodes are transformed into `DocumentSuggestion` objects, which carry the text together with metadata like the publication date and the similarity score.
 
-After that if it was a temporal query, we rerank the results based on temporal relevance, giving higher priority to papers that better match the temporal constraints specified in the user's query. This reranking step ensures that when users ask for time-specific information, they receive results that are not only semantically relevant but also temporally matches.
+For temporal questions we then rerank. Each paper gets a recency score that decays exponentially with age, `e^(−age/365)`: a one-year-old paper scores 0.37. That score is blended with the similarity score using the weight from the analysis: `final = (1 − w) × similarity + w × recency`. Several chunks from the same paper collapse into one, and the top 5 remain.
 
 ```typescript
 /**
@@ -258,7 +254,7 @@ export const rankTemporalDocuments = async (
 
 ## Chat response based on the provided context
 
-Once relevant documents are retrieved, the system processes them along with the user's query to generate a response. The chat engine combines the retrieved context with the conversation history and user's question, passing this information to the GPT model. This ensures that responses are not only accurate but also maintain continuity with previous interactions in the chat session.
+The chat engine combines the retrieved context with the conversation history and the user's question, and passes it to the GPT model. The prompt tells the model to say so when the context isn't enough, to cite dates from the papers, and to prefer recent work.
 
 ```typescript
 /**
@@ -324,7 +320,7 @@ const getChatResponse = async (
 
 ## Streaming of answers and suggestions to the frontend
 
-The chat response is then streamed back to the frontend in real-time, allowing for a dynamic and engaging user experience. The streaming approach ensures that users receive immediate feedback as the AI processes their query and generates the response, rather than waiting for the entire response to be completed before seeing any output.
+The answer streams to the frontend through the Vercel AI SDK adapter. The matched papers travel with it as message annotations, so the UI can list them next to the answer.
 
 ```typescript
 ...
@@ -352,8 +348,8 @@ return LlamaIndexAdapter.toDataStreamResponse(stream, {
 
 # Final thoughts
 
-In this article, we explored how Flatuniverse uses AI to provide intelligent responses to research paper queries. The system's temporal analysis, combined with efficient document retrieval and context-aware chat responses, enables users to access relevant research information seamlessly.
+{/* TODO(Marton): one sentence only you can write. Something that didn't work, a number from real use, or what you'd change (e.g. how often the time analysis misread a question, or whether 365 days was the right decay). This comment doesn't render. */}
 
 If you are interested in learning more about how this architecture works in practice, you can explore the open-source codebase on [GitHub](https://github.com/dobosmarton/flatuniverse-app).
 
-Or explore the capability of the app firsthand by visiting Flat Universe at [https://www.flatuniverse.app](https://www.flatuniverse.app). The platform provides an intuitive interface for exploring and understanding research papers through AI-powered features. Whether you're a researcher, student, or just curious about scientific literature, Flat Universe offers tools to make academic papers more accessible and comprehensible.
+Or explore the capability of the app firsthand by visiting Flat Universe at [https://www.flatuniverse.app](https://www.flatuniverse.app).

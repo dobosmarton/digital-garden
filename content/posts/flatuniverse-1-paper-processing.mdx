@@ -10,7 +10,7 @@ tags:
   - neon
   - pinecone
   - data processing
-description: "Explore how FlatUniverse uses modern tools like Trigger.dev, Sequin, Neon, and Pinecone to transform research paper processing. This article dives into the technical architecture and workflows that make research papers accessible, from metadata extraction and vector embedding to AI-driven semantic search."
+description: "How FlatUniverse pulls new papers from arXiv every 6 hours with Trigger.dev, stores the metadata in Neon, and uses Sequin change data capture to turn each new paper's PDF into embeddings in Pinecone."
 tools:
   - slug: trigger-dev
     note: "Orchestrates the arXiv sync cron + async PDF/embedding tasks"
@@ -36,7 +36,7 @@ Over the past few months, I've developed an app that makes research papers more 
 
 # Overview
 
-Importing and processing research papers follows an asynchronous flow triggered by a cron job. The process involves several steps, from initial scheduling to data storage. Let's review these steps before diving deeper into the technical details and source code in the following sections:
+Importing and processing research papers follows an asynchronous flow triggered by a cron job. The steps, from the scheduling to the data storage:
 
 1. A scheduler initiates the process at regular intervals
 2. Fetch the XML formatted article metadata
@@ -61,14 +61,14 @@ Once complete, we have both the research paper metadata in our database and the 
   <figcaption>The article processing workflow</figcaption>
 </figure>
 
-The core components of the application include:
+The tools behind it:
 
-- [**Next.js**](https://nextjs.org/): A React framework for building server-side rendered and statically generated web applications.
-- [**Trigger.dev**](https://trigger.dev/): A platform for building and managing background jobs and workflows.
-- [**Neon**](https://neon.tech/): A serverless Postgres database for storing structured data.
-- [**Pinecone**](https://www.pinecone.io/): A vector database for storing and searching high-dimensional vectors, ideal for semantic search and AI applications.
-- [**Sequin**](https://sequinstream.com/): Replace clunky tools like Debezium by streaming data from Postgres to SQS, Kafka, and more.
-- [**LlamaIndex**](https://ts.llamaindex.ai/): LlamaIndex is a framework for building LLM-powered applications. LlamaIndex helps you ingest, structure, and access private or domain-specific data.
+- [**Next.js**](https://nextjs.org/): the web app, and the API route that receives Sequin's webhook.
+- [**Trigger.dev**](https://trigger.dev/): runs the 6-hourly cron job and the background tasks (metadata sync, PDF processing, embedding generation).
+- [**Neon**](https://neon.tech/): serverless Postgres for the paper metadata.
+- [**Pinecone**](https://www.pinecone.io/): vector database for the embeddings of the papers.
+- [**Sequin**](https://sequinstream.com/): streams the metadata changes from Neon to the webhook, which starts the AI processing for new papers.
+- [**LlamaIndex**](https://ts.llamaindex.ai/): splits the PDF text into chunks and wraps them, with their OpenAI embeddings, into `TextNode`s.
 
 # Scheduler
 
@@ -97,12 +97,12 @@ export const researchSyncSchedule = schedules.create({
 
 # Fetching the XML formatted article metadata
 
-The app integrates with [https://arxiv.org/](https://arxiv.org/) through its [convenient API](https://info.arxiv.org/help/api/index.html). The metadata fetching happens through a trigger.dev task, which is called by the `researchSync` task mentioned earlier. This task needs a `startDate` parameter to determine which research papers to fetch. The app fetches papers from the current day several times daily, ensuring continuous updates to the system. I don't want to dig deep into the arXiv API but I mention two important parts which can be considered as general rules of integrating with third-party APIs.
+The app integrates with [https://arxiv.org/](https://arxiv.org/) through its [convenient API](https://info.arxiv.org/help/api/index.html). The metadata fetching happens through a trigger.dev task, which is called by the `researchSync` task mentioned earlier. This task needs a `startDate` parameter to determine which research papers to fetch. The app fetches papers from the current day several times daily. I don't want to dig deep into the arXiv API but I mention two important parts which can be considered as general rules of integrating with third-party APIs.
 
 - **Pagination**: especially if you plan to use large data set, be prepared to fetch the data paginated from the external source. arXiv API uses resumption token to control the data.
-- **Retry**: if your service builds heavily on third party API requests, it worth to build some kind of retry mechanism to give a chance to recover after a failed request. The request can fail due many reason that a retry can solve, e.g network issue, server timeout, rate limit error, etc. Make sure you apply exponential backoff (or some sort of increasing timout) to give some time to the external server to recover.
+- **Retry**: if your service builds heavily on third party API requests, it worth to build some kind of retry mechanism to give a chance to recover after a failed request. The request can fail due many reason that a retry can solve, e.g network issue, server timeout, rate limit error, etc. Make sure you apply exponential backoff (or some sort of increasing timeout) to give some time to the external server to recover.
 
-Trigger.dev gives [several options](https://trigger.dev/docs/errors-retrying) to configure retries for you tasks or requests if you want to retry only a specific request in a task after a failure.
+Trigger.dev gives [several options](https://trigger.dev/docs/errors-retrying) to configure retries for your tasks or requests if you want to retry only a specific request in a task after a failure.
 
 ```jsx
 const responseTextData = await retry.onThrow(
@@ -123,29 +123,17 @@ const responseTextData = await retry.onThrow(
     );
 ```
 
-# Data Storage in the app: A Dual Database Approach
+# Data storage
 
-In the Flatuniverse app, efficient data storage is important for handling the vast amount of research papers processed daily. To achieve this, the application uses a dual database strategy with Neon and Pinecone. This approach allows the application to uses the strengths of each database, optimizing for both structured and unstructured data storage.
+The app uses two databases: Neon for the paper metadata and Pinecone for the embeddings.
 
-## Neon: The Backbone for Structured Data
+## Neon
 
-Neon serves as the primary database for storing structured data within the app. This includes metadata about research papers, such as titles, authors, categories, publication dates, and abstracts.
+Neon is a serverless Postgres database. It stores the metadata of the research papers, such as titles, authors, categories, publication dates, and abstracts. New rows in this database are what start the AI processing (see [Sequin change data capture](#sequin-change-data-capture)).
 
-### Key Features of Neon:
+## Pinecone
 
-- **Relational Database**: As a serverless Postgres database, Neon is ideal for managing structured data with complex relationships. It supports SQL queries, making data retrieval and manipulation straightforward and efficient.
-- **Scalability**: Neon’s serverless architecture allows it to automatically scale based on demand, ensuring that the application can handle varying loads without performance degradation.
-- **Data Integrity**: With built-in support for transactions and constraints, Neon ensures that data remains consistent and reliable, which is essential for maintaining accurate metadata records.
-
-## Pinecone: Semantic Search with Vector Data
-
-While Neon handles structured data, Pinecone is used for storing high-dimensional vectors, such as embeddings generated from PDFs. These embeddings are crucial for the application's AI-driven features, like semantic search and similar article recommendations.
-
-### Key Features of Pinecone:
-
-- **Vector Database**: Pinecone is specifically designed for storing and querying vector data, which is common in AI applications. It is great at handling high-dimensional data efficiently.
-- **Semantic Search**: By storing embeddings, Pinecone enables the application to perform semantic searches, allowing users to find similar articles based on content rather than just keywords. This enhances the user experience by providing more relevant search results.
-- **Performance**: Pinecone is optimized for fast retrieval of vector data, making it ideal for applications that require real-time or near-real-time search capabilities.
+Pinecone stores the embeddings generated from the PDFs. The app uses them for semantic search and similar article recommendations.
 
 The app saves embeddings for each page of the paper to be able to retrieve more precise suggestions. The unique id strategy is to combine the `metadataId` and the index of the given page, so we can easily get the pages of a research paper but the app also can retrieve an exact page of a paper as an answer or suggestion.
 
@@ -174,17 +162,9 @@ export const addVectorsToIndex = async <T extends Metadata>(
   );
 ```
 
-## Why a Dual Database Approach?
-
-The decision to use both Neon and Pinecone is driven by the need to handle different types of data efficiently:
-
-- **Structured vs. Unstructured Data**: Neon is well-suited for structured data with defined schemas, while Pinecone is optimized for unstructured, high-dimensional vector data.
-- **Specialized Capabilities**: Each database offers specialized capabilities that enhance the application's functionality. Neon provides robust relational data management, while Pinecone offers advanced vector search capabilities.
-- **Performance Optimization**: By using the strengths of each database, the app can optimize performance for both metadata management and AI-driven search features.
-
 # Generating Embeddings Using LlamaIndex and OpenAI
 
-The embedding generation process is a crucial step in making research papers searchable and understandable through AI. LlamaIndex provides powerful tools for processing and structuring the PDF content, while OpenAI's embedding models transform this content into high-dimensional vectors that capture semantic meaning. This combination enables advanced search capabilities and content understanding that goes beyond simple keyword matching.
+LlamaIndex's `SentenceSplitter` cuts the PDF text into chunks of 1000 tokens with a 200 token overlap. OpenAI's `text-embedding-3-small` model turns each chunk into a vector, and the vectors are compared with cosine similarity. Each `TextNode` gets the paper metadata too, so it ends up in Pinecone next to the vector.
 
 ```jsx
 /**
@@ -249,11 +229,11 @@ export const loadPDF = async (pdfPath: string, metadata: Metadata): Promise<Text
 
 # Asynchronous data processing
 
-The steps of processing research papers in the app are designed to run asynchronously, allowing for efficient handling of large volumes of data. This approach ensures that resource-intensive tasks like PDF processing and embedding generation don't block the main application flow and can happen not only asynchronous but parallel. The system uses trigger.dev's job scheduling and Sequin streaming capabilities to coordinate these operations, making the entire pipeline robust and scalable.
+The steps of processing research papers in the app run asynchronously, so resource-intensive tasks like PDF processing and embedding generation don't block the main application flow and can happen not only asynchronous but parallel. Two things coordinate these operations: trigger.dev tasks triggering each other, and Sequin's change stream.
 
 ## Trigger.dev task trigger
 
-A major advantage of trigger.dev tasks are that you can trigger them from other tasks or your backend code without waiting for their completion. The trigger.dev platform provides comprehensive monitoring and tracing for all tasks, making it easy to track their progress and results.
+A major advantage of trigger.dev tasks is that you can trigger them from other tasks or your backend code without waiting for their completion. The trigger.dev platform provides monitoring and tracing for all tasks, so you can track their progress and results.
 
 ### Example: Paginated metadata sync
 
@@ -286,11 +266,11 @@ export const syncMetadata = task({
 
 ## Sequin change data capture
 
-Sequin's change data capture (CDC) capabilities play a crucial role in maintaining data consistency across the application. By monitoring changes in the Neon database, Sequin enables real-time synchronization of data modifications, ensuring that any updates to research paper metadata are promptly reflected throughout the system. This streaming approach allows for efficient handling of database changes without the need for periodic polling or batch updates.
+Sequin watches the Neon database with change data capture (CDC). When article metadata is inserted or updated, Sequin calls a webhook in the Next.js app, so there is no need for periodic polling.
 
-### Example: Generating AI Content
+### Example: Generating AI Content
 
-One of the key tasks in the application is generating AI content from research papers. The process first checks whether embeddings exist for a given article. If they don't, it triggers the generation of embeddings from the PDF. While a [trigger.dev](http://trigger.dev) task handles the actual generation, Sequin's database change stream initiates the AI content generation process. This approach ensures that metadata is saved to the Neon database first, allowing article pages to display new metadata even if AI content generation fails. Since Sequin persists the streamed events, failed AI generation attempts can be replayed at any time.
+One of the main tasks in the application is generating AI content from research papers. The process first checks whether embeddings exist for a given article. If they don't, it triggers the generation of embeddings from the PDF. While a [trigger.dev](http://trigger.dev) task handles the actual generation, Sequin's database change stream initiates the AI content generation process. This approach ensures that metadata is saved to the Neon database first, allowing article pages to display new metadata even if AI content generation fails. Since Sequin persists the streamed events, failed AI generation attempts can be replayed at any time.
 
 ```jsx
 /**
@@ -338,13 +318,13 @@ const handleMetadataChangeEvent = async (req: Request) => {
 export const POST = handleMetadataChangeEvent;
 ```
 
-# Error Handling and System Resilience
+The endpoint checks the `SEQUIN_WEBHOOK_SECRET` in the `Authorization` header, and only `insert` events trigger the `generate-ai-content` task. Updates are ignored.
 
-A robust error handling strategy is crucial for maintaining system reliability in an asynchronous processing pipeline. The application implements several layers of error handling and resilience mechanisms to ensure smooth operation even when issues arise.
+# Error Handling and System Resilience
 
 ## Retry Mechanisms
 
-The system employs automatic retry logic for failed operations, particularly in critical processes like PDF processing and embedding generation. trigger.dev's built-in retry capabilities are used to handle temporary failures in external service calls and network issues.
+Besides the request-level retry in the metadata fetch, whole tasks can be retried too. The PDF processing and embedding generation use trigger.dev's task-level retry for temporary failures in external service calls and network issues. In the example below, a task is retried up to 3 times with exponential backoff, starting from 30 seconds.
 
 ```jsx
 export const processDocument = task({
@@ -362,27 +342,16 @@ export const processDocument = task({
 });
 ```
 
-## Monitoring and Alerting
-
-Comprehensive error tracking and monitoring are implemented across the processing pipeline. This includes:
-
-- Real-time error notifications through trigger.dev's monitoring system
-- Detailed error logging with contextual information for debugging
-- Performance metrics tracking to identify potential bottlenecks
-- Automated alerts for critical failures requiring immediate attention
-
 ## Data Consistency
 
-The system maintains data consistency through transaction management and idempotent operations. Sequin's CDC capabilities help ensure that data remains synchronized even when processing steps fail and need to be retried.
-
-These resilience mechanisms work together to create a robust system that can handle failures gracefully while maintaining data integrity and system availability.
+The metadata sync triggers use an `idempotencyKey`, and Sequin persists the change events, so a failed AI content generation can be replayed later.
 
 # Final thoughts
 
-Building a system to process and analyze research papers requires careful consideration of various technical components and their interactions. The combination of trigger.dev for task orchestration, Sequin for data synchronization, Neon for structured data storage, and Pinecone for vector search creates a robust and scalable architecture. This approach not only ensures efficient processing of research papers but also provides a foundation for future enhancements and scaling of the application.
-
-The modular design and use of modern cloud services also makes it easier to iterate and improve individual components without disrupting the entire system. As the field of AI and research paper processing continues to evolve, this architecture provides the flexibility needed to incorporate new capabilities and technologies. The open-source nature of the project invites collaboration and enables others to build upon and enhance these foundations.
+{/* TODO(Marton): one sentence only you can write. Something that didn't work, a number from real use, or what you'd change (e.g. how many papers a 6-hour sync brings in, or how often the arXiv API returned 503 and the retry kicked in). This comment doesn't render. */}
 
 If you are interested in learning more about how this architecture works in practice, you can explore the open-source codebase on [GitHub](https://github.com/dobosmarton/flatuniverse-app).
 
-Or explore the capability of the app firsthand by visiting Flat Universe at [https://www.flatuniverse.app](https://www.flatuniverse.app). The platform provides an intuitive interface for exploring and understanding research papers through AI-powered features. Whether you're a researcher, student, or just curious about scientific literature, Flat Universe offers tools to make academic papers more accessible and comprehensible.
+Or explore the capability of the app firsthand by visiting Flat Universe at [https://www.flatuniverse.app](https://www.flatuniverse.app).
+
+In the [next part](/posts/flatuniverse-2-intelligent-paper-search) I show how the chat feature uses these embeddings to answer questions about the papers, with time-aware search.

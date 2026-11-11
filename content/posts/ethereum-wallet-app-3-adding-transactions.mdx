@@ -46,15 +46,15 @@ In this article, we will cover only the case when the user can send tokens to an
 
 Let's review briefly how a transaction works on the Ethereum and Polygon networks
 
-- **The sender initiates the transaction:** The sender specifies the recipient address, the amount of the tokens or assets to be sent, and any optional data that needs to be included in the transaction.
+- **The sender initiates the transaction:** sets the recipient address, the amount and optional data, and signs it with the private key.
 
-- **The transaction is broadcasted to the network:** The transaction is broadcasted to the network, where it is picked up by a node that adds it to the mempool. The mempool is a list of unconfirmed transactions waiting to be processed by the network.
+- **The transaction is broadcast to the network:** a node picks it up and adds it to the mempool, the list of unconfirmed transactions.
 
-- **Validators validate and confirm the transaction:** Validators validate and confirm the transaction by adding it to a block and signing it with their private key.
+- **Validators confirm the transaction:** a validator adds it to a block.
 
-- **Block is added to the blockchain:** Once the block containing the transaction is validated and confirmed, it is added to the blockchain and becomes a permanent part of the ledger. At this point, the transaction is considered confirmed and the tokens or assets are transferred from the sender to the recipient.
+- **The block is added to the blockchain:** the transaction is confirmed and the tokens are transferred to the recipient.
 
-- **Gas fees are paid to the validator:** The gas fee is a measure of the computational effort required to execute the transaction and is determined by the sender based on the current network conditions and the priority of the transaction.
+- **Gas fees are paid to the validator:** the fee is the gas price multiplied by the gas the transaction uses. Our app estimates both before sending.
 
 We only need to implement the first and the first part of the second bullet points, the rest of the steps are handled by the network and the validators.
 

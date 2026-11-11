@@ -1,7 +1,7 @@
 ---
 title: "The 12-Step Game Loop"
 publishedDate: "2026-06-06"
-lastUpdatedDate: "2026-06-07"
+lastUpdatedDate: "2026-06-23"
 tags:
   - ai
   - python
@@ -10,7 +10,7 @@ tags:
   - llm
   - agents
   - aoe2
-description: "A walkthrough of the 12-step pipeline that runs every agent turn — what each phase does, where the time actually goes, and how routine turns resolve in seconds while combat turns fall back to a slower agentic tool loop."
+description: "A walkthrough of the 12-step pipeline that runs every agent turn: what each phase does, where the time actually goes, and how routine turns resolve in seconds while combat turns fall back to a slower agentic tool loop."
 tools:
   - slug: mss
     note: "Fast game-window screen capture (~10–30ms)"
@@ -21,7 +21,7 @@ tools:
   - slug: anthropic-tool-use
     note: "The agentic fallback loop for combat and housing turns"
   - slug: sahi
-    note: "Sliced inference behind the adaptive detection modes (deep-dived in Episode 3)"
+    note: "Sliced inference; built and measured, but disabled in v6 because it lowered real F1 (deep-dived in Episode 3)"
   - slug: pyautogui
     note: "Action execution; the `PAUSE=0.02` tuning lives here"
 status: published
@@ -30,23 +30,17 @@ series:
   title: "AoE2 LLM Arena"
 ---
 
-How long a loop iteration takes depends almost entirely on one step — the executor — which now runs in one of two modes. Most turns are routine and resolve in a single structured-output call (a few seconds). Combat and housing emergencies fall back to an agentic tool loop with up to 7 LLM calls, which can stretch a turn toward half a minute. Everything else — screenshot, detection, ownership classification, context assembly — takes well under a second combined.
-
-This post walks through all 12 steps, where the time actually goes, and which design decisions are doing the most work.
-
----
+How long a loop iteration takes depends almost entirely on one step, the executor, which now runs in one of two modes. Most turns are routine and resolve in a single structured-output call (a few seconds). Combat and housing emergencies fall back to an agentic tool loop with up to 7 LLM calls, which can stretch a turn toward half a minute. Everything else (screenshot, detection, ownership classification, context assembly) takes well under a second combined.
 
 ## Two timescales in the same loop
 
-AoE2's clock runs continuously. The agent doesn't pause it — it samples it. The loop fires, takes a screenshot, runs detection, builds context, sends that to the LLM, executes whatever comes back, then sleeps and repeats.
+AoE2's clock runs continuously, and the agent only samples it. The loop fires, takes a screenshot, runs detection, builds context, sends that to the LLM, executes whatever comes back, then sleeps and repeats.
 
-The first half of that — screenshot through context assembly — takes under 500ms. Then the executor starts. On a **routine turn** that's a single structured-output call (a few seconds); rather than block idle while it computes, the loop fills the wait with cheap deterministic upkeep and with executing the _previous_ turn's actions — routine turns pipeline (more at step 9). On a **combat or housing turn** the executor instead enters an agentic tool loop — the first response arrives in 8–10 seconds, and each subsequent tool call gets executed locally and sent back, adding another ~3 seconds per call; with up to 7 calls that path alone can run ~20–30 seconds. Combat turns don't pipeline; their tool loop is already acting mid-turn, so they run synchronously.
+The first half of that, from screenshot to context assembly, takes under 500ms. Then the executor starts. On a routine turn that's a single structured-output call (a few seconds). Routine turns are pipelined, so instead of blocking idle while the model computes, the loop fills the wait with cheap deterministic upkeep and with executing the _previous_ turn's actions (more at step 9). On a combat or housing turn the executor enters an agentic tool loop instead. The first response arrives in 8–10 seconds, and each following tool call gets executed locally and sent back, adding another ~3 seconds per call. With up to 7 calls, that path alone can run ~20–30 seconds. Combat turns don't pipeline: their tool loop is already acting mid-turn, so they run synchronously.
 
 The 0.3-second sleep at step 12 is a deliberate pause between iterations; it's negligible next to the executor either way.
 
-So a routine iteration is a few seconds and a worst-case combat iteration is ~30. The game keeps running during all of it. Someone watching the agent play sees it act briskly most of the time, then occasionally pause to think through a fight. That's the actual rhythm.
-
----
+A routine iteration is a few seconds and a worst-case combat iteration is ~30, and the game keeps running during all of it. Watching the agent play, you see it act briskly most of the time, then occasionally pause to think through a fight.
 
 ## The 12 steps
 
@@ -67,16 +61,15 @@ Every iteration runs these phases in order:
 12. Wait (0.3 second sleep)
 ```
 
-A few of these — ownership classification, alarm checks, context building — are covered in later episodes, so I won't spend long on them here.
+Ownership classification, alarm checks and context building are covered in later episodes, so I won't spend long on them here.
 
-Here's how long each takes:
+How long each phase takes:
 
 | Phase                                         | Time                                                                     |
 | --------------------------------------------- | ------------------------------------------------------------------------ |
 | Window check + focus                          | ~200ms worst case                                                        |
 | Screenshot capture                            | ~10–30ms                                                                 |
-| YOLO detection (adaptive)                     | ~100–200ms                                                               |
-| YOLO detection (full SAHI)                    | ~234ms                                                                   |
+| YOLO detection (single pass @640)             | one forward pass                                                         |
 | Ownership classification                      | ~5ms                                                                     |
 | Alarm check                                   | &lt;1ms                                                                  |
 | Executor — single-shot (routine turns)        | ~2–4s                                                                    |
@@ -86,39 +79,33 @@ Here's how long each takes:
 | Loop delay                                    | 0.3s                                                                     |
 | **Total per iteration**                       | **~3–5s routine**; up to **~30s** on a combat turn (tool loop dominates) |
 
-The strategist is not in that table because it runs asynchronously in the background. I'll come back to that.
+The strategist is not in that table because it runs asynchronously in the background (step 7 below).
 
-The dominant cost is the executor. On a routine turn that's one structured call; on a combat turn it's the tool loop — up to 7 calls at roughly 3 seconds each, plus the initial 8–10s response, which is where the ~30-second worst case comes from. Detection, screenshot capture, and action execution together take under 500ms. They're never the bottleneck.
-
----
+The dominant cost is the executor. On a routine turn that's one structured call. On a combat turn it's the tool loop: up to 7 calls at roughly 3 seconds each, plus the initial 8–10s response, which is where the ~30-second worst case comes from. Detection, screenshot capture and action execution together take under 500ms.
 
 ## Step 3: Screenshot capture
 
 The `mss` library grabs the game window region, converts from BGRA to RGB via PIL, and encodes as JPEG. The whole thing takes 10–30ms and returns `(bytes, width, height)`.
 
-One detail worth noting: screenshots are taken relative to the game window, not the full monitor. The game can be anywhere on screen. Every coordinate downstream of this step is window-relative until the execution layer translates it back to screen-absolute coordinates for pyautogui. This translation happens once per action, not once per turn, because the window can move while a batch of actions is executing.
-
----
+Screenshots are taken relative to the game window instead of the full monitor, since the game can be anywhere on screen. Every coordinate downstream of this step is window-relative until the execution layer translates it back to screen-absolute coordinates for pyautogui. This translation happens once per action rather than once per turn, because the window can move while a batch of actions is executing.
 
 ## Step 4: Entity detection
 
-The YOLO model runs on every frame. The default mode is adaptive SAHI (Sliced Aided Hyper Inference) — a two-pass approach that runs a fast scan first at `imgsz=1280`, clusters the detections into regions of interest, then runs full-resolution tiling only on those regions. In practice this is 3–8 tiles instead of 18, cutting latency from ~234ms to ~100–200ms. The full reasoning behind the tiling approach — why a 3024×1672 screenshot needs slicing at all, and how ROI clustering works — is covered in Episode 3.
+The YOLO model runs on every frame as a single forward pass at `imgsz=640`, the size the model trained on. You'd think you need to tile a 3024×1672 screenshot to catch small objects. For this model, that turned out to be wrong. When I measured on real frames, a plain downscale-and-run-once beat SAHI tiling by about 10× on real F1, because tiling shows the model objects ~2.4× bigger than anything it saw in training. Episode 3 has the full story and the numbers. So the agent runs with `adaptive_sahi=False`, and the tiling code stays in the tree but switched off.
 
-Detection has three modes:
+Detection has two live modes, plus one that's parked:
 
-- **Adaptive SAHI** (~100–200ms) — the default on most iterations
-- **Full SAHI** (~234ms) — forced on the first iteration, every 5 iterations, and after any alarm
-- **Kalman prediction** (~0ms) — on rescans, when tracker confidence is above 80%, the agent extrapolates entity positions from their last known velocity rather than taking a new screenshot. No inference, no capture. Episode 3 covers how the tracker keeps stable entity IDs across frames.
+- Single pass @640: every turn. The deployed path (`detect_fast`/`detect_fast_multi`).
+- Kalman prediction (~0ms): on rescans, when the tracker is more than 80% confident, the agent guesses where entities moved from their last known speed instead of taking a new screenshot. No inference, no capture. Episode 3 covers how the tracker keeps entity IDs stable across frames.
+- SAHI tiling: built and tested, but off by default. It only becomes the right tool once the model is retrained at the scale the tiles produce.
 
-The periodic full SAHI matters because the fast scan can miss entities in new screen areas it hasn't calibrated ROIs for. Without it, the agent would gradually develop blind spots as the game progresses and the map changes.
-
----
+There's also a frame-differencing gate in front of rescans. If the screen hasn't changed by more than ~3% (with the always-ticking resource bar cropped out), the agent skips detection completely and reuses the previous entities.
 
 ## Step 7: The strategist runs in the background
 
-The strategist is a vision model call. It receives the screenshot, reads the resource bar and population count directly from the UI, and returns 3–5 prioritized goals. It runs every 10 turns in Castle Age, every 5 in Feudal, every 3 in Dark Age — or immediately when an alarm fires.
+The strategist reads the resource bar and population count from the HUD with local OCR (RapidOCR) and sends those numbers to the model as a text-only prompt; no screenshot ever goes to Claude. It returns 3–5 prioritized goals. It runs every 10 turns in Castle Age, every 5 in Feudal, every 3 in Dark Age, or right away when an alarm fires.
 
-The key implementation detail: it's launched with `asyncio.create_task()`. It runs in the background while the rest of the loop continues. The executor doesn't wait for it.
+It's launched with `asyncio.create_task()`, so it runs in the background while the rest of the loop continues, and the executor doesn't wait for it.
 
 ```python
 strategist_task = asyncio.create_task(
@@ -126,20 +113,20 @@ strategist_task = asyncio.create_task(
 )
 ```
 
-On the first iteration, the executor uses default goals because no strategist result exists yet. After that, it uses whatever goals the last strategist call produced — which may be one or two iterations stale. That's a deliberate tradeoff: blocking on the strategist would add 3–8 seconds to every N-th iteration, and stale goals are almost always better than waiting.
+On the first iteration, the executor uses default goals because no strategist result exists yet. After that, it uses whatever goals the last strategist call produced, which may be one or two iterations stale. That's a deliberate tradeoff: blocking on the strategist would add 3–8 seconds to every N-th iteration, and stale goals are almost always better than waiting.
 
 If a strategist task is still running when a new one would fire, the loop reuses the existing task rather than launching a second one.
 
----
-
 ## Step 9: Two executor paths
 
-The executor is text-only. No screenshot, no vision. It receives a structured context block — entity list, goals, resources, recent turn history, game knowledge — and `get_actions()` routes the turn down one of two paths (`_use_single_shot`):
+The executor is text-only, with no screenshot and no vision. It receives a structured context block (entity list, goals, resources, recent turn history, game knowledge), and `get_actions()` routes the turn down one of two paths (`_use_single_shot`):
 
-- **Routine turns** (the common case) take a **single-shot** structured-output call: one `messages.parse`, the model returns a list of actions, and the game loop executes them. No tool loop, no intermediate roundtrips.
-- **Combat and housing turns** — the ones that need mid-turn rescans or composite tools — fall back to the **agentic tool loop** below. The router scans the context for signals like `under attack`, `defend`, or being housed, and keeps those turns on the loop.
+- Routine turns (the common case) take a **single-shot** structured-output call: one `messages.parse`, the model returns a list of actions, and the game loop executes them. No tool loop, no intermediate roundtrips.
+- Combat and housing turns, the ones that need mid-turn rescans or composite tools, fall back to the **agentic tool loop** below. The router scans the context for signals like `under attack`, `defend`, or being housed, and keeps those turns on the loop.
 
-Two things happen _around_ this call. First, routine turns are **pipelined**: the executor call is launched in the background and the loop spends the wait doing real work — executing the previous turn's committed head (re-validated against the latest detection, with any stale target dropped) plus a deterministic **reactive tier** that queues a villager when population is below the age cap and puts idle villagers on the nearest resource, all with no LLM call. The plan computed this turn is then acted on next turn. Combat turns skip the pipeline and run synchronously, since their tool loop is already acting. Second, after entity-affecting actions the loop **verifies** the effect by re-detecting: a successful build logs `CONFIRMED`, a miss logs the exact phrase `no visible change`, which feeds a stuck-loop detector so the model notices when it's spinning its wheels.
+Two things happen _around_ this call. First, routine turns are pipelined. The executor call is launched in the background, and the loop spends the wait doing real work: it executes the previous turn's committed head (re-validated against the latest detection, with any stale target dropped) and runs a deterministic **reactive tier** that queues a villager when population is below the age cap and puts idle villagers on the nearest resource, all with no LLM call. The plan computed this turn is then acted on next turn. Combat turns skip the pipeline and run synchronously, since their tool loop is already acting.
+
+Second, after entity-affecting actions the loop verifies the effect by re-detecting. A successful build logs `CONFIRMED`; a miss logs the exact phrase `no visible change`, which feeds a stuck-loop detector so the model notices when it's spinning its wheels.
 
 The rest of this section walks the tool-loop path, since it's the more involved of the two.
 
@@ -190,15 +177,13 @@ When a turn runs the loop, the shape looks like this:
 
 Six tool calls, then Claude reports back its observations (population, resources, game state) in the final response and the iteration ends.
 
-**Why ~3 seconds per call**: each round trip is LLM latency, not action execution time. Claude generates the tool call → the executor runs it locally (pyautogui is ~50ms) → the result is sent back → Claude processes it and generates the next response. That last part — Claude reading the result and deciding what to do — takes ~3 seconds. The actual mouse click is negligible.
+Each call takes ~3 seconds because every round trip is LLM latency. Claude generates the tool call → the executor runs it locally (pyautogui is ~50ms) → the result is sent back → Claude processes it and generates the next response. That last part, Claude reading the result and deciding what to do, takes ~3 seconds. The mouse click itself is negligible.
 
-**What "up to 7" means**: it's a hard cap (`max_tool_iterations = 7`). Simple iterations use far fewer — queueing a villager and sending two to food might take 3 calls. Complex ones, like the sequence above, can use all 7. The limit exists because game state keeps changing while the loop is blocked on the executor. At 7 calls the iteration is already ~30 seconds old. Letting the agent continue past that means acting on a screenshot that's half a minute stale — the agent might send a villager to a sheep that's since been eaten by a wolf. Cutting off at 7 and starting fresh with a new screenshot is the better tradeoff.
-
----
+The "up to 7" is a hard cap (`max_tool_iterations = 7`). Simple iterations use far fewer; queueing a villager and sending two to food might take 3 calls. Complex ones, like the sequence above, can use all 7. The limit exists because game state keeps changing while the loop is blocked on the executor. At 7 calls the iteration is already ~30 seconds old. Letting the agent continue past that means acting on a screenshot that's half a minute stale, and the agent might send a villager to a sheep that's since been eaten by a wolf. Cutting off at 7 and starting fresh with a new screenshot is the better tradeoff.
 
 ## Composite tools: collapsing multi-step sequences
 
-Some actions require multiple steps in sequence: select an idle villager, open the build menu, press the building hotkey, click a placement location. Before composite tools, that was 4 separate tool calls and 4 API roundtrips — about 12 seconds just for one building placement.
+Some actions require multiple steps in sequence: select an idle villager, open the build menu, press the building hotkey, click a placement location. Before composite tools, that was 4 separate tool calls and 4 API roundtrips, about 12 seconds just for one building placement.
 
 Composite tools wrap those sequences:
 
@@ -216,27 +201,23 @@ send_villager("sheep_0", 456, 789)
 queue_villager()
 ```
 
-Each of these executes a multi-step sequence within a single tool call. No intermediate API roundtrips. `build()` saves about 9 seconds. `queue_villager()` saves 3.
+Each of these executes a multi-step sequence within a single tool call, with no intermediate API roundtrips. `build()` saves about 9 seconds. `queue_villager()` saves 3.
 
 The tradeoff: the agent doesn't re-detect between steps within a composite tool. If a villager dies mid-sequence, the build still attempts. In practice this happens rarely enough that it's not worth the latency cost of re-scanning mid-action.
 
----
+## Tuning pyautogui: `PAUSE=0.02`
 
-## The detail that actually matters: `PAUSE=0.02`
-
-pyautogui has a global delay between every mouse and keyboard event. The default is 0.1 seconds. I changed it to 0.02. The delay exists because pyautogui is a general-purpose automation library designed to control applications that weren't built to receive inputs at machine speed — a 100ms gap gives the target application time to process one event before the next arrives, preventing dropped or misregistered inputs on sluggish GUIs.
+pyautogui has a global delay between every mouse and keyboard event. The default is 0.1 seconds. I changed it to 0.02. The delay exists because pyautogui is a general-purpose automation library designed to control applications that weren't built to receive inputs at machine speed. A 100ms gap gives the target application time to process one event before the next arrives, preventing dropped or misregistered inputs on sluggish GUIs.
 
 ```python
 pyautogui.PAUSE = 0.02
 ```
 
-Eighty milliseconds saved per action. Across 7 actions per iteration, 30 iterations per game: that's about 17 seconds saved over a game run. More importantly, it makes action sequences feel less sluggish — the gap between "press H" and "press Q" shrinks from 100ms to 20ms, which is closer to how a human actually types hotkeys.
+Eighty milliseconds saved per action. Across 7 actions per iteration and 30 iterations per game, that's about 17 seconds saved over a game run. More importantly, action sequences feel less sluggish: the gap between "press H" and "press Q" shrinks from 100ms to 20ms, which is closer to how a human actually types hotkeys.
 
 The game handles it fine. AoE2 doesn't have input buffering problems at this speed.
 
-The related setting is `action_delay` — a 50ms pause between separate tool call actions (not within a composite tool). That one stays at 50ms because the game needs a moment to process a click before the next one fires. Going lower on that causes missed inputs.
-
----
+The related setting is `action_delay`, a 50ms pause between separate tool call actions (not within a composite tool). That one stays at 50ms because the game needs a moment to process a click before the next one fires. Going lower on that causes missed inputs.
 
 ## Steps 10 and 11: Memory and execution
 
@@ -250,20 +231,16 @@ turn = memory.create_turn(
 )
 ```
 
-The executor reports back what it observed — resources, population, game state. That structured JSON gets parsed and stored, then injected into the next turn's context as Layer 4. The agent is narrating its own world model, which gets fed back to it. It works well most of the time. When the LLM misreports something ("Food: 500" when it's actually 50), that error propagates until the strategist's next vision read corrects it.
+The executor reports back what it observed: resources, population, game state. That structured JSON gets parsed and stored, then injected into the next turn's context as Layer 4. The agent is narrating its own world model, which gets fed back to it. It works well most of the time. When the LLM misreports something ("Food: 500" when it's actually 50), that error propagates until the strategist's next OCR read corrects it.
 
-Action execution translates window-relative coordinates to screen-absolute, applies the per-action window offset refresh (in case the window moved), and calls pyautogui. Failed actions — wrong coordinates, entity not found, game didn't respond — are logged back to memory as feedback for the next turn. The agent knows if its last action failed.
-
----
+Action execution translates window-relative coordinates to screen-absolute, applies the per-action window offset refresh (in case the window moved), and calls pyautogui. Failed actions (wrong coordinates, entity not found, game didn't respond) are logged back to memory as feedback for the next turn, so the agent knows if its last action failed.
 
 ## When things break
 
-The main loop wraps each step in error handling. Detection failures don't crash the loop — the iteration continues without an entity list, which produces a degraded context but not a dead agent. Focus failures skip the iteration entirely. API errors in the executor return a `wait` action, which is a conscious choice: doing nothing is safer than attempting an action with incomplete state.
+The main loop wraps each step in error handling. Detection failures don't crash the loop: the iteration continues without an entity list and the agent works from a degraded context. Focus failures skip the iteration entirely. API errors in the executor return a `wait` action, which is a conscious choice: doing nothing is safer than attempting an action with incomplete state.
 
-The one failure mode that isn't graceful: if the executor enters a loop repeating the same action with no visible effect, it keeps running. The stuck-loop detection that handles this is in the memory layer, not the game loop — after 3 consecutive turns with no observable change, it injects a correction into the next prompt. That's covered in Episode 6.
-
----
+The one failure mode that isn't graceful: if the executor enters a loop repeating the same action with no visible effect, it keeps running. The stuck-loop detection that handles this lives in the memory layer rather than the game loop. After 3 consecutive turns with no observable change, it injects a correction into the next prompt. That's covered in Episode 6.
 
 ## What's next
 
-The loop runs continuously — briskly on routine turns, slower when a fight forces the tool loop. Most of what makes it useful happens inside steps 4 and 9 — detection and reasoning. Episode 3 covers detection: how to build a 60-class YOLO model for an isometric game, why tiling at multiple scales matters, and how entity IDs stay stable across frames so the LLM can refer to the same sheep across turns.
+Most of what makes the loop useful happens inside steps 4 and 9, detection and reasoning. Episode 3 covers detection: how to build a 60-class YOLO model for an isometric game, why a plain single pass beat the fancy tiling I expected to need, and how entity IDs stay stable across frames so the LLM can refer to the same sheep across turns.
