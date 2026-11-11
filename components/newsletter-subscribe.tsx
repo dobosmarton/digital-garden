@@ -24,9 +24,9 @@ const SUCCESS_TOAST = {
   description: "Check your inbox to confirm your subscription.",
 } as const;
 
+// The description is the server's own message (e.g. rate limited, invalid email).
 const FAILURE_TOAST = {
   title: "Something went wrong.",
-  description: "The subscription did not happen. Please try again.",
   variant: "destructive",
 } as const;
 
@@ -64,8 +64,12 @@ function NewsletterForm({ buttonText, placeholder, buttonVariant, className }: N
         company: String(data.get("company") ?? ""),
         elapsedMs: Date.now() - mountedAtRef.current,
       });
-      if (result.ok) form.reset();
-      toast(result.ok ? SUCCESS_TOAST : FAILURE_TOAST);
+      if (result.ok) {
+        form.reset();
+        toast(SUCCESS_TOAST);
+      } else {
+        toast({ ...FAILURE_TOAST, description: result.error });
+      }
     });
   };
 

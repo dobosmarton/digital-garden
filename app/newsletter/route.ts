@@ -63,10 +63,15 @@ export async function POST(request: Request) {
   }
 
   if (ratelimit) {
-    const ip = clientIp(request);
-    const { success } = await ratelimit.limit(ip);
-    if (!success) {
-      return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+    // Fail open: an unreachable or misconfigured Redis must not block subscriptions.
+    // The honeypot and the submit-time check below still apply.
+    try {
+      const { success } = await ratelimit.limit(clientIp(request));
+      if (!success) {
+        return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+      }
+    } catch (error) {
+      console.error("Newsletter rate limit unavailable", error instanceof Error ? error.message : "unknown");
     }
   }
 
